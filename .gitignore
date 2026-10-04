@@ -1,4 +1,4 @@
-# Build output
+# Generated build/cache output
 build/
 .dart_tool/
 .pub/
@@ -13,40 +13,15 @@ coverage/
 *.log
 .history/
 
-# Local Flutter/Dart generated metadata
-.packages
-.flutter-plugins
-.flutter-plugins-dependencies
-**/generated_plugin_registrant.dart
-
-# Android local-only files
+# Local-only Android files
 **/android/local.properties
 **/android/key.properties
 *.jks
 *.keystore
 .gradle/
 
-# iOS local/generated files
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/ephemeral/
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Runner/GeneratedPluginRegistrant.*
-**/ios/**/xcuserdata/
-
-# macOS generated files
-**/macos/Flutter/ephemeral/
-**/macos/Pods/
+# Generated platform metadata
+**/generated_plugin_registrant.dart
+**/GeneratedPluginRegistrant.*
 **/xcuserdata/
-
-# Windows/Linux generated plugin files
-**/windows/flutter/generated_plugin_registrant.cc
-**/windows/flutter/generated_plugin_registrant.h
-**/windows/flutter/generated_plugins.cmake
-**/linux/flutter/generated_plugin_registrant.cc
-**/linux/flutter/generated_plugin_registrant.h
-**/linux/flutter/generated_plugins.cmake
-
-# Flutter project source/platform files are intentionally NOT ignored.
-# android/, ios/, web/, windows/, linux/, macos/, lib/, test/, tool/ remain trackable.
+**/Pods/
