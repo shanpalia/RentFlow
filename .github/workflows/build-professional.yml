@@ -22,70 +22,20 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Restore Android platform
+      - name: Verify Android project
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            flutter create --platforms=android --no-pub --project-name rentflow .
-          fi
+          test -f pubspec.yaml
+          test -f lib/app.dart
           test -f android/gradlew
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Repair customer report syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('lib/app.dart')
-          s = p.read_text()
-          start = s.find('Future<void> customerReport(')
-          end = s.find('Future<void> checkUpdate(', start)
-          if start < 0 or end < 0:
-              raise SystemExit('Could not locate customerReport/checkUpdate boundaries')
-          replacement = r'''Future<void> customerReport(BuildContext context, Store store, String customer) async {
-            final rows = store.rentals.where((r) => '${r['customer']}' == customer).toList();
-            await showDialog<void>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: Text(customer),
-                content: SizedBox(
-                  width: 360,
-                  child: rows.isEmpty
-                      ? const Text('No rental history.')
-                      : ListView(
-                          shrinkWrap: true,
-                          children: rows.map((r) {
-                            return ListTile(
-                              title: Text('${r['item']} • Qty ${r['qty']}'),
-                              subtitle: Text('${r['date']} • ${r['received']}/${r['qty']} received'),
-                              trailing: Text(money(r['amount'])),
-                            );
-                          }).toList(),
-                        ),
-                ),
-                actions: [
-                  FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          '''
-          s = s[:start] + replacement + s[end:]
-          p.write_text(s)
-          PY
-
       - name: Analyze Dart source
-        run: flutter analyze lib --no-fatal-infos
+        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
