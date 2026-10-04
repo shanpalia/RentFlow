@@ -1,5 +1,5 @@
-import 'rentflow_modern.dart';
+import 'app.dart' as app;
 
 Future<void> main() async {
-  await runModern();
+  await app.main();
 }
