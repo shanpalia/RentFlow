@@ -21,8 +21,24 @@ jobs:
       - name: Generate Android project files
         run: flutter create --project-name rentflow --org com.shanpalia --platforms android .
 
-      - name: Use professional RentFlow UI
-        run: cp tool/professional_main.dart lib/main.dart
+      - name: Configure RentFlow navigation
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text()
+          old_pages = """      ReportsPage(store: store),\n    ];"""
+          new_pages = """      ReportsPage(store: store),\n      SettingsPage(onCheck: checkForUpdate),\n    ];"""
+          if old_pages not in s:
+              raise SystemExit('Expected pages block was not found')
+          s = s.replace(old_pages, new_pages, 1)
+
+          old_nav = """NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: 'Reports')"""
+          new_nav = """NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: 'Reports'), NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings_rounded), label: 'Settings')"""
+          if old_nav not in s:
+              raise SystemExit('Expected navigation destination was not found')
+          s = s.replace(old_nav, new_nav, 1)
+          p.write_text(s)
 
       - name: Apply RentFlow branding, launcher icon and native splash
         shell: bash
@@ -54,7 +70,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze only lib
+      - name: Analyze RentFlow source
         run: flutter analyze lib
 
       - name: Build release APK
