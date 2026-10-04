@@ -24,6 +24,15 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Restore Android platform
+        run: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            echo "Android platform is missing; generating it from the Flutter project."
+            flutter create --platforms=android --no-pub .
+          fi
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          test -f android/gradlew
+
       - name: Check Flutter project
         run: |
           test -f pubspec.yaml
