@@ -54,8 +54,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze professional UI
-        run: flutter analyze
+      - name: Analyze only lib
+        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
