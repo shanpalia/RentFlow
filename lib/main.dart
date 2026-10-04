@@ -1,630 +1,68 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const teal = Color(0xFF00A982);
-const mint = Color(0xFFE9FBF6);
+const primary = Color(0xFF00A889);
+const mint = Color(0xFFE8F8F3);
+const bg = Color(0xFFF5F9F7);
+const text = Color(0xFF14211D);
+const muted = Color(0xFF71807B);
 
-void main() => runApp(const RentFlowApp());
+void main() => runApp(const RentFlow());
 
-class RentFlowApp extends StatelessWidget {
-  const RentFlowApp({super.key});
-
+class RentFlow extends StatelessWidget {
+  const RentFlow({super.key});
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'RentFlow',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF8FFFC),
-        colorScheme: ColorScheme.fromSeed(seedColor: teal),
-      ),
-      home: const AppShell(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'RentFlow',
+    theme: ThemeData(useMaterial3: true, scaffoldBackgroundColor: bg, colorScheme: ColorScheme.fromSeed(seedColor: primary), cardTheme: CardThemeData(elevation: 0, color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE4ECE8)))), inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE0E8E4))), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE0E8E4)))),
+    home: const Shell(),
+  );
 }
 
-class Store {
-  List<Map<String, dynamic>> items = [];
-  List<Map<String, dynamic>> customers = [];
-  List<Map<String, dynamic>> rentals = [];
-  List<Map<String, dynamic>> invoices = [];
-  late SharedPreferences prefs;
-
-  Future<void> load() async {
-    prefs = await SharedPreferences.getInstance();
-    items = _read('items');
-    customers = _read('customers');
-    rentals = _read('rentals');
-    invoices = _read('invoices');
-  }
-
-  List<Map<String, dynamic>> _read(String key) {
-    final value = prefs.getString(key);
-    if (value == null) return [];
-    final decoded = jsonDecode(value) as List<dynamic>;
-    return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-  }
-
-  Future<void> save() async {
-    await prefs.setString('items', jsonEncode(items));
-    await prefs.setString('customers', jsonEncode(customers));
-    await prefs.setString('rentals', jsonEncode(rentals));
-    await prefs.setString('invoices', jsonEncode(invoices));
-  }
-
-  String id() => DateTime.now().microsecondsSinceEpoch.toString();
+class DB {
+  late SharedPreferences p;
+  List<Map<String,dynamic>> items=[], customers=[], rentals=[];
+  Future<void> load() async { p=await SharedPreferences.getInstance(); items=read('items'); customers=read('customers'); rentals=read('rentals'); }
+  List<Map<String,dynamic>> read(String k){ final s=p.getString(k); if(s==null)return []; return (jsonDecode(s) as List).map((e)=>Map<String,dynamic>.from(e)).toList(); }
+  Future<void> save() async { await p.setString('items',jsonEncode(items)); await p.setString('customers',jsonEncode(customers)); await p.setString('rentals',jsonEncode(rentals)); }
+  String id()=>DateTime.now().microsecondsSinceEpoch.toString();
 }
 
-class AppShell extends StatefulWidget {
-  const AppShell({super.key});
-
-  @override
-  State<AppShell> createState() => _AppShellState();
+class Shell extends StatefulWidget { const Shell({super.key}); @override State<Shell> createState()=>_ShellState(); }
+class _ShellState extends State<Shell>{ final db=DB(); int tab=0; bool loading=true; @override void initState(){super.initState(); init();} Future<void> init()async{await db.load();if(mounted)setState(()=>loading=false);} void refresh()=>setState((){});
+  @override Widget build(BuildContext c){if(loading)return const Splash(); final pages=[Home(db,refresh,(i)=>setState(()=>tab=i)),Items(db,refresh),Customers(db,refresh),Reports(db)]; return Scaffold(body:IndexedStack(index:tab,children:pages),bottomNavigationBar:NavigationBar(height:72,backgroundColor:Colors.white,indicatorColor:mint,selectedIndex:tab,onDestinationSelected:(i)=>setState(()=>tab=i),destinations:const[NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home_rounded),label:'Home'),NavigationDestination(icon:Icon(Icons.inventory_2_outlined),selectedIcon:Icon(Icons.inventory_2_rounded),label:'Items'),NavigationDestination(icon:Icon(Icons.people_outline),selectedIcon:Icon(Icons.people_rounded),label:'Customers'),NavigationDestination(icon:Icon(Icons.analytics_outlined),selectedIcon:Icon(Icons.analytics_rounded),label:'Reports')])); }
 }
 
-class _AppShellState extends State<AppShell> {
-  final Store data = Store();
-  int tab = 0;
-  bool loading = true;
+class Splash extends StatelessWidget{const Splash({super.key});@override Widget build(BuildContext c)=>const Scaffold(body:Center(child:Column(mainAxisSize:MainAxisSize.min,children:[Brand(92),SizedBox(height:18),Text('RentFlow',style:TextStyle(fontSize:40,fontWeight:FontWeight.w900)),Text('By PaliaAPK HUB',style:TextStyle(color:primary,fontWeight:FontWeight.w800)),SizedBox(height:6),Text('Developer by ShanPalia',style:TextStyle(color:muted))])));}
+class Brand extends StatelessWidget{final double size;const Brand(this.size,{super.key});@override Widget build(BuildContext c)=>Container(width:size,height:size,decoration:BoxDecoration(color:primary,borderRadius:BorderRadius.circular(size*.25),boxShadow:const[BoxShadow(color:Color(0x2500A889),blurRadius:18,offset:Offset(0,8))]),child:Icon(Icons.swap_horiz_rounded,color:Colors.white,size:size*.58));}
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    await data.load();
-    if (mounted) setState(() => loading = false);
-  }
-
-  void refresh() => setState(() {});
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) return const Splash();
-    final pages = <Widget>[
-      Home(data: data, onChanged: refresh),
-      ItemsPage(data: data, onChanged: refresh),
-      CustomersPage(data: data, onChanged: refresh),
-      ReportsPage(data: data),
-    ];
-    return Scaffold(
-      body: pages[tab],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
-        onDestinationSelected: (index) => setState(() => tab = index),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Items'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Customers'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Reports'),
-        ],
-      ),
-    );
-  }
+class Home extends StatelessWidget{final DB db;final VoidCallback refresh;final ValueChanged<int> tab;const Home(this.db,this.refresh,this.tab,{super.key});int get total=>db.items.fold(0,(s,x)=>s+numi(x['qty']));int get available=>db.items.fold(0,(s,x)=>s+numi(x['available']));int get issued=>total-available;int get due=>db.rentals.fold(0,(s,x)=>s+numi(x['qty'])-numi(x['received']));
+ @override Widget build(BuildContext c)=>SafeArea(child:CustomScrollView(slivers:[SliverPadding(padding:const EdgeInsets.fromLTRB(20,18,20,0),sliver:SliverToBoxAdapter(child:Row(children:[const Brand(52),const SizedBox(width:12),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('RentFlow',style:TextStyle(fontSize:28,fontWeight:FontWeight.w900)),Text('Rental management',style:TextStyle(color:muted))])),IconButton(onPressed:()=>about(c),icon:const Icon(Icons.info_outline_rounded))]))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,18,20,0),sliver:SliverToBoxAdapter(child:Container(padding:const EdgeInsets.all(22),decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFFE9FAF5),Color(0xFFDDF5ED)]),borderRadius:BorderRadius.circular(26)),child:Row(children:[const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('RENTAL MANAGEMENT',style:TextStyle(color:primary,fontSize:12,fontWeight:FontWeight.w900,letterSpacing:1.1)),SizedBox(height:8),Text('Run your rental\nbusiness smarter.',style:TextStyle(fontSize:27,height:1.08,fontWeight:FontWeight.w900,color:text)),SizedBox(height:9),Text('Items, customers, rentals and invoices in one place.',style:TextStyle(color:muted,height:1.35))])),Container(width:62,height:62,decoration:BoxDecoration(color:Colors.white.withValues(alpha:.8),shape:BoxShape.circle),child:const Icon(Icons.swap_horizontal_circle_rounded,color:primary,size:40))])))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,16,20,0),sliver:SliverToBoxAdapter(child:Row(children:[Expanded(child:Stat('Total Items','$total',Icons.inventory_2_rounded)),const SizedBox(width:10),Expanded(child:Stat('Available','$available',Icons.check_circle_rounded))]))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,10,20,0),sliver:SliverToBoxAdapter(child:Row(children:[Expanded(child:Stat('Issued','$issued',Icons.north_east_rounded)),const SizedBox(width:10),Expanded(child:Stat('Items Due','$due',Icons.schedule_rounded))]))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,16,20,0),sliver:SliverToBoxAdapter(child:FilledButton.icon(style:FilledButton.styleFrom(backgroundColor:primary,foregroundColor:Colors.white,minimumSize:const Size.fromHeight(58),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(17))),onPressed:()=>rental(c,db,refresh),icon:const Icon(Icons.add_rounded),label:const Text('New Rental',style:TextStyle(fontSize:18,fontWeight:FontWeight.w800))))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,14,20,0),sliver:SliverToBoxAdapter(child:Row(children:[QA('Add Item',Icons.inventory_2_outlined,()=>addItem(c,db,refresh)),QA('Customer',Icons.person_add_alt_1_rounded,()=>addCustomer(c,db,refresh)),QA('Invoice',Icons.receipt_long_outlined,()=>invoices(c,db)),QA('Receive',Icons.undo_rounded,()=>receive(c,db,refresh))]))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,24,20,10),sliver:SliverToBoxAdapter(child:Row(children:[const Expanded(child:Text('Recent Rentals',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900))),TextButton(onPressed:()=>tab(3),child:const Text('View all'))]))),SliverPadding(padding:const EdgeInsets.fromLTRB(20,0,20,24),sliver:SliverList.builder(itemCount:db.rentals.reversed.take(6).length,itemBuilder:(c,i){final r=db.rentals.reversed.elementAt(i);return Padding(padding:const EdgeInsets.only(bottom:8),child:Card(child:ListTile(contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:5),leading:const CircleAvatar(backgroundColor:mint,child:Icon(Icons.swap_horiz_rounded,color:primary)),title:Text('${r['customer']}',style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text('${r['item']} • ${r['date']} • ${r['days']} day(s)'),trailing:Text('₹${money(r['amount'])}',style:const TextStyle(fontWeight:FontWeight.w900))));}))]));}
 }
+class Stat extends StatelessWidget{final String a,b;final IconData icon;const Stat(this.a,this.b,this.icon,{super.key});@override Widget build(BuildContext c)=>Container(height:112,padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:const Color(0xFFE4ECE8))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Icon(icon,color:primary),const Spacer(),Text(a,style:const TextStyle(color:muted,fontSize:13)),Text(b,style:const TextStyle(fontSize:25,fontWeight:FontWeight.w900,color:text))]));}
+class QA extends StatelessWidget{final String label;final IconData icon;final VoidCallback on;const QA(this.label,this.icon,this.on,{super.key});@override Widget build(BuildContext c)=>Expanded(child:InkWell(onTap:on,borderRadius:BorderRadius.circular(16),child:Container(margin:const EdgeInsets.symmetric(horizontal:3),padding:const EdgeInsets.symmetric(vertical:13),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(16),border:Border.all(color:const Color(0xFFE1E9E5))),child:Column(children:[Icon(icon,color:primary),const SizedBox(height:7),Text(label,style:const TextStyle(fontSize:11.5,fontWeight:FontWeight.w800))]))));}
 
-class Splash extends StatelessWidget {
-  const Splash({super.key});
+class Items extends StatefulWidget{final DB db;final VoidCallback refresh;const Items(this.db,this.refresh,{super.key});@override State<Items> createState()=>_ItemsState();}
+class _ItemsState extends State<Items>{String q='';@override Widget build(BuildContext c){final list=widget.db.items.where((x)=>'${x['name']} ${x['category']}'.toLowerCase().contains(q.toLowerCase())).toList();return pageScaffold('Items','Manage your rental inventory',IconButton.filled(onPressed:()=>addItem(c,widget.db,widget.refresh),icon:const Icon(Icons.add_rounded)),[TextField(onChanged:(v)=>setState(()=>q=v),decoration:const InputDecoration(prefixIcon:Icon(Icons.search_rounded),hintText:'Search items')),const SizedBox(height:14),...list.map((x)=>Card(child:ListTile(contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:6),leading:const CircleAvatar(backgroundColor:mint,child:Icon(Icons.inventory_2_rounded,color:primary)),title:Text(x['name'],style:const TextStyle(fontWeight:FontWeight.w900)),subtitle:Text('${x['category']} • ${x['type']} • ₹${money(x['rate'])}'),trailing:Text('${numi(x['available'])}/${numi(x['qty'])}',style:const TextStyle(fontWeight:FontWeight.w900)))).toList()]);}}
+class Customers extends StatefulWidget{final DB db;final VoidCallback refresh;const Customers(this.db,this.refresh,{super.key});@override State<Customers> createState()=>_CustomersState();}
+class _CustomersState extends State<Customers>{String q='';@override Widget build(BuildContext c){final list=widget.db.customers.where((x)=>'${x['name']} ${x['mobile']}'.toLowerCase().contains(q.toLowerCase())).toList();return pageScaffold('Customers','Customer-wise rental history',IconButton.filled(onPressed:()=>addCustomer(c,widget.db,widget.refresh),icon:const Icon(Icons.person_add_alt_1_rounded)),[TextField(onChanged:(v)=>setState(()=>q=v),decoration:const InputDecoration(prefixIcon:Icon(Icons.search_rounded),hintText:'Search customer')),const SizedBox(height:14),...list.map((x)=>Card(child:ListTile(onTap:()=>customerReport(c,widget.db,x['name']),contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:6),leading:CircleAvatar(backgroundColor:mint,child:Text(x['name'][0].toUpperCase(),style:const TextStyle(color:primary,fontWeight:FontWeight.w900))),title:Text(x['name'],style:const TextStyle(fontWeight:FontWeight.w900)),subtitle:Text('${x['mobile']} • Tap for full report'),trailing:const Icon(Icons.chevron_right_rounded))).toList()]);}}
+class Reports extends StatefulWidget{final DB db;const Reports(this.db,{super.key});@override State<Reports> createState()=>_ReportsState();}
+class _ReportsState extends State<Reports>{String q='';@override Widget build(BuildContext c){final rows=dbRows(widget.db,q);return pageScaffold('Reports','Date-wise rental report',IconButton(onPressed:()=>invoices(c,widget.db),icon:const Icon(Icons.receipt_long_outlined)),[TextField(onChanged:(v)=>setState(()=>q=v),decoration:const InputDecoration(prefixIcon:Icon(Icons.search_rounded),hintText:'Search customer or item')),const SizedBox(height:14),Card(child:SingleChildScrollView(scrollDirection:Axis.horizontal,child:DataTable(columns:const[DataColumn(label:Text('Date')),DataColumn(label:Text('Customer')),DataColumn(label:Text('Item')),DataColumn(label:Text('Issued')),DataColumn(label:Text('Received')),DataColumn(label:Text('Days')),DataColumn(label:Text('Rate')),DataColumn(label:Text('Amount')),DataColumn(label:Text('Due'))],rows:rows.map((r)=>DataRow(cells:[DataCell(Text(r['date'])),DataCell(Text(r['customer'])),DataCell(Text(r['item'])),DataCell(Text('${r['qty']}')),DataCell(Text('${r['received']}')),DataCell(Text('${r['days']}')),DataCell(Text('₹${money(r['rate'])}')),DataCell(Text('₹${money(r['amount'])}')),DataCell(Text('${numi(r['qty'])-numi(r['received'])}'))])).toList()))) ]);}}
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _BrandIcon(size: 92),
-            SizedBox(height: 18),
-            Text('RentFlow', style: TextStyle(fontSize: 38, fontWeight: FontWeight.w800)),
-            Text('By PaliaAPK HUB', style: TextStyle(color: teal, fontWeight: FontWeight.w700)),
-            SizedBox(height: 8),
-            Text('Developer by ShanPalia', style: TextStyle(color: Colors.black54)),
-          ],
-        ),
-      ),
-    );
-  }
-}
+List<Map<String,dynamic>> dbRows(DB db,String q)=>db.rentals.where((r)=>'${r['customer']} ${r['item']}'.toLowerCase().contains(q.toLowerCase())).toList().reversed.toList();
+Widget pageScaffold(String title,String sub,Widget action,List<Widget> children)=>SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(20,18,20,24),children:[Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(fontSize:28,fontWeight:FontWeight.w900,color:text)),Text(sub,style:const TextStyle(color:muted))])),action]),const SizedBox(height:18),...children]));
 
-class _BrandIcon extends StatelessWidget {
-  final double size;
-  const _BrandIcon({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: teal, borderRadius: BorderRadius.circular(size * .28)),
-      child: Icon(Icons.swap_horiz_rounded, color: Colors.white, size: size * .62),
-    );
-  }
-}
-
-class Home extends StatelessWidget {
-  final Store data;
-  final VoidCallback onChanged;
-  const Home({super.key, required this.data, required this.onChanged});
-
-  int get totalItems => data.items.fold<int>(0, (sum, item) => sum + _int(item['qty']));
-  int get availableItems => data.items.fold<int>(0, (sum, item) => sum + _int(item['available']));
-  int get issuedItems => totalItems - availableItems;
-  int get activeRentals => data.rentals.where((r) => r['status'] == 'issued').length;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
-        children: [
-          Row(children: [
-            const _BrandIcon(size: 48),
-            const SizedBox(width: 10),
-            const Expanded(child: Text('RentFlow', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800))),
-            IconButton(onPressed: () => _about(context), icon: const Icon(Icons.info_outline)),
-          ]),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: mint, borderRadius: BorderRadius.circular(20)),
-            child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Rental Management', style: TextStyle(color: Colors.black54, fontSize: 15)),
-              SizedBox(height: 2),
-              Text('Manage your business', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800)),
-              Text('Items, customers, rentals and invoices in one place', style: TextStyle(color: Colors.black54)),
-            ]),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.8,
-            children: [
-              _stat('Total Items', '$totalItems', Icons.inventory_2),
-              _stat('Available', '$availableItems', Icons.check_circle),
-              _stat('Issued', '$issuedItems', Icons.north_east),
-              _stat('Items Due', '$activeRentals', Icons.schedule),
-            ],
-          ),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(58), backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-            onPressed: () => _newRental(context),
-            icon: const Icon(Icons.add_circle_outline),
-            label: const Text('New Rental', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-          ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _action('Add Item', Icons.inventory_2_outlined, () => _addItem(context))),
-            Expanded(child: _action('Customer', Icons.person_add_alt_1, () => _addCustomer(context))),
-            Expanded(child: _action('Invoice', Icons.receipt_long, () => _showInvoices(context))),
-            Expanded(child: _action('Receive', Icons.undo, () => _receive(context))),
-          ]),
-          const SizedBox(height: 18),
-          Row(children: [
-            const Expanded(child: Text('Recent Rentals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800))),
-            TextButton(onPressed: () => _showInvoices(context), child: const Text('Invoices')),
-          ]),
-          ...data.rentals.reversed.take(5).map((r) => Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: mint, child: Icon(Icons.inventory_2, color: teal)),
-                  title: Text('${r['customer']} • ${r['item']}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('${r['date']} • Qty: ${r['qty']} • ${r['days']} day(s)'),
-                  trailing: Text('₹${_money(r['amount'])}', style: const TextStyle(fontWeight: FontWeight.w800)),
-                  onTap: () => _makeInvoice(context, r),
-                ),
-              )),
-          if (data.rentals.isEmpty) const Padding(padding: EdgeInsets.all(30), child: Center(child: Text('No rentals yet'))),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .05), blurRadius: 10)]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: teal),
-        const Spacer(),
-        Text(title, style: const TextStyle(color: Colors.black54)),
-        Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800)),
-      ]),
-    );
-  }
-
-  Widget _action(String text, IconData icon, VoidCallback action) {
-    return InkWell(
-      onTap: action,
-      child: Container(
-        margin: const EdgeInsets.all(3),
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 3),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.black12)),
-        child: Column(children: [Icon(icon, color: teal), const SizedBox(height: 5), Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))]),
-      ),
-    );
-  }
-
-  void _about(BuildContext context) {
-    showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('RentFlow'),
-      content: const Text('RentFlow\nBy PaliaAPK HUB\nDeveloper by ShanPalia'),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close'))],
-    ));
-  }
-
-  Future<void> _addItem(BuildContext context) async {
-    final name = TextEditingController();
-    final category = TextEditingController();
-    final qty = TextEditingController(text: '1');
-    final rate = TextEditingController(text: '0');
-    String type = 'Per Day';
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) => AlertDialog(
-      title: const Text('Add Item'),
-      content: SingleChildScrollView(child: Column(children: [
-        _field(name, 'Item Name'),
-        _field(category, 'Category'),
-        _field(qty, 'Total Quantity', number: true),
-        _field(rate, 'Rent Price', number: true),
-        DropdownButtonFormField<String>(
-          initialValue: type,
-          items: const ['Per Day', 'Per Hour', 'Per Event'].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
-          onChanged: (value) => setDialogState(() => type = value ?? type),
-          decoration: const InputDecoration(labelText: 'Rent Type'),
-        ),
-      ])),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
-      ],
-    )));
-    if (saved != true || name.text.trim().isEmpty) return;
-    final quantity = int.tryParse(qty.text) ?? 0;
-    data.items.add({'id': data.id(), 'name': name.text.trim(), 'category': category.text.trim(), 'qty': quantity, 'available': quantity, 'rate': double.tryParse(rate.text) ?? 0, 'type': type});
-    await data.save();
-    onChanged();
-  }
-
-  Future<void> _addCustomer(BuildContext context) async {
-    final name = TextEditingController();
-    final mobile = TextEditingController();
-    final address = TextEditingController();
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
-      title: const Text('New Customer'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [_field(name, 'Customer Name'), _field(mobile, 'Mobile'), _field(address, 'Address')]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
-      ],
-    ));
-    if (saved != true || name.text.trim().isEmpty) return;
-    data.customers.add({'id': data.id(), 'name': name.text.trim(), 'mobile': mobile.text.trim(), 'address': address.text.trim()});
-    await data.save();
-    onChanged();
-  }
-
-  Future<void> _newRental(BuildContext context) async {
-    if (data.customers.isEmpty || data.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please add at least one customer and one item first.')));
-      return;
-    }
-    String customer = data.customers.first['name'] as String;
-    String item = data.items.first['name'] as String;
-    final qty = TextEditingController(text: '1');
-    final days = TextEditingController(text: '1');
-    final rate = TextEditingController(text: '${_num(data.items.first['rate'])}');
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) => AlertDialog(
-      title: const Text('New Rental'),
-      content: SingleChildScrollView(child: Column(children: [
-        DropdownButtonFormField<String>(
-          initialValue: customer,
-          items: data.customers.map((x) => DropdownMenuItem(value: x['name'] as String, child: Text(x['name'] as String))).toList(),
-          onChanged: (value) => setDialogState(() => customer = value ?? customer),
-          decoration: const InputDecoration(labelText: 'Customer'),
-        ),
-        DropdownButtonFormField<String>(
-          initialValue: item,
-          items: data.items.map((x) => DropdownMenuItem(value: x['name'] as String, child: Text(x['name'] as String))).toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            setDialogState(() {
-              item = value;
-              final selected = data.items.firstWhere((x) => x['name'] == item);
-              rate.text = '${_num(selected['rate'])}';
-            });
-          },
-          decoration: const InputDecoration(labelText: 'Item'),
-        ),
-        _field(qty, 'Quantity', number: true),
-        _field(days, 'Days', number: true),
-        _field(rate, 'Rate (manual edit allowed)', number: true),
-      ])),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Create')),
-      ],
-    )));
-    if (saved != true) return;
-    final selected = data.items.firstWhere((x) => x['name'] == item);
-    final quantity = int.tryParse(qty.text) ?? 0;
-    final rentalDays = int.tryParse(days.text) ?? 1;
-    final rentalRate = double.tryParse(rate.text) ?? 0;
-    if (quantity <= 0 || rentalDays <= 0) return;
-    if (quantity > _int(selected['available'])) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not enough available quantity.')));
-      return;
-    }
-    final amount = quantity * rentalRate * rentalDays;
-    selected['available'] = _int(selected['available']) - quantity;
-    final rental = <String, dynamic>{
-      'id': data.id(),
-      'date': _date(),
-      'customer': customer,
-      'item': item,
-      'qty': quantity,
-      'issued': quantity,
-      'received': 0,
-      'days': rentalDays,
-      'rate': rentalRate,
-      'amount': amount,
-      'status': 'issued',
-    };
-    data.rentals.add(rental);
-    data.invoices.add({...rental, 'invoice': 'INV-${data.invoices.length + 1}'});
-    await data.save();
-    onChanged();
-  }
-
-  Future<void> _receive(BuildContext context) async {
-    final active = data.rentals.where((r) => r['status'] == 'issued').toList();
-    if (active.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No issued items found.')));
-      return;
-    }
-    String rentalId = active.first['id'] as String;
-    final received = TextEditingController(text: '${_int(active.first['qty'])}');
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) => AlertDialog(
-      title: const Text('Receive Item'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        DropdownButtonFormField<String>(
-          initialValue: rentalId,
-          items: active.map((x) => DropdownMenuItem(value: x['id'] as String, child: Text('${x['customer']} • ${x['item']}'))).toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            rentalId = value;
-            final current = active.firstWhere((x) => x['id'] == rentalId);
-            received.text = '${_int(current['qty'])}';
-            setDialogState(() {});
-          },
-          decoration: const InputDecoration(labelText: 'Rental'),
-        ),
-        _field(received, 'Received Quantity', number: true),
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Receive')),
-      ],
-    )));
-    if (saved != true) return;
-    final rental = data.rentals.firstWhere((x) => x['id'] == rentalId);
-    final returned = int.tryParse(received.text) ?? 0;
-    final outstanding = _int(rental['qty']);
-    if (returned <= 0 || returned > outstanding) return;
-    final item = data.items.firstWhere((x) => x['name'] == rental['item']);
-    item['available'] = _int(item['available']) + returned;
-    rental['received'] = _int(rental['received']) + returned;
-    rental['qty'] = outstanding - returned;
-    if (_int(rental['qty']) == 0) rental['status'] = 'received';
-    await data.save();
-    onChanged();
-  }
-
-  void _showInvoices(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        expand: false,
-        builder: (_, scrollController) => ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(18),
-          children: [
-            const Text('Invoices', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            ...data.invoices.reversed.map((invoice) => ListTile(
-              title: Text(invoice['invoice'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('${invoice['customer']} • ${invoice['item']} • ${invoice['date']}'),
-              trailing: Text('₹${_money(invoice['amount'])}'),
-              onTap: () => _makeInvoice(context, invoice),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _makeInvoice(BuildContext context, Map<String, dynamic> rental) async {
-    final document = pw.Document();
-    final amount = _num(rental['amount']);
-    document.addPage(pw.Page(build: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-      pw.Text('RENTFLOW', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)),
-      pw.Text('By PaliaAPK HUB'),
-      pw.Text('Developer by ShanPalia'),
-      pw.SizedBox(height: 18),
-      pw.Text('RENTAL INVOICE', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-      pw.SizedBox(height: 10),
-      pw.Text('Invoice: ${rental['invoice'] ?? 'INV-${rental['id']}'}'),
-      pw.Text('Date: ${rental['date']}'),
-      pw.Text('Customer: ${rental['customer']}'),
-      pw.SizedBox(height: 16),
-      pw.Table(border: pw.TableBorder.all(), children: [
-        _pdfRow(['Item', 'Qty', 'Days', 'Rate', 'Amount'], bold: true),
-        _pdfRow(['${rental['item']}', '${rental['issued'] ?? rental['qty']}', '${rental['days']}', '₹${_money(rental['rate'])}', '₹${_money(amount)}']),
-      ]),
-      pw.SizedBox(height: 14),
-      pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('TOTAL: ₹${_money(amount)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold))),
-    ])));
-    await Printing.layoutPdf(onLayout: (_) async => document.save());
-  }
-
-  pw.TableRow _pdfRow(List<String> values, {bool bold = false}) {
-    return pw.TableRow(children: values.map((value) => pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(value, style: bold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null))).toList());
-  }
-}
-
-class ItemsPage extends StatelessWidget {
-  final Store data;
-  final VoidCallback onChanged;
-  const ItemsPage({super.key, required this.data, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Items', style: TextStyle(fontWeight: FontWeight.w800)), backgroundColor: Colors.transparent),
-      body: data.items.isEmpty
-          ? const Center(child: Text('No items added yet'))
-          : ListView.builder(padding: const EdgeInsets.all(16), itemCount: data.items.length, itemBuilder: (_, index) {
-              final item = data.items[index];
-              return Card(child: ListTile(
-                leading: const CircleAvatar(backgroundColor: mint, child: Icon(Icons.inventory_2, color: teal)),
-                title: Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('${item['category']} • ${item['type']} • ₹${_money(item['rate'])}'),
-                trailing: Text('${item['available']}/${item['qty']}'),
-              ));
-            }),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => _addItem(context), backgroundColor: teal, foregroundColor: Colors.white, icon: const Icon(Icons.add), label: const Text('Add Item')),
-    ));
-  }
-
-  Future<void> _addItem(BuildContext context) async {
-    final name = TextEditingController();
-    final category = TextEditingController();
-    final qty = TextEditingController(text: '1');
-    final rate = TextEditingController(text: '0');
-    String type = 'Per Day';
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) => AlertDialog(
-      title: const Text('Add Item'),
-      content: SingleChildScrollView(child: Column(children: [
-        _field(name, 'Item Name'), _field(category, 'Category'), _field(qty, 'Total Quantity', number: true), _field(rate, 'Rent Price', number: true),
-        DropdownButtonFormField<String>(initialValue: type, items: const ['Per Day', 'Per Hour', 'Per Event'].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: (v) => setDialogState(() => type = v ?? type), decoration: const InputDecoration(labelText: 'Rent Type')),
-      ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save'))],
-    )));
-    if (saved != true || name.text.trim().isEmpty) return;
-    final quantity = int.tryParse(qty.text) ?? 0;
-    data.items.add({'id': data.id(), 'name': name.text.trim(), 'category': category.text.trim(), 'qty': quantity, 'available': quantity, 'rate': double.tryParse(rate.text) ?? 0, 'type': type});
-    await data.save();
-    onChanged();
-  }
-}
-
-class CustomersPage extends StatelessWidget {
-  final Store data;
-  final VoidCallback onChanged;
-  const CustomersPage({super.key, required this.data, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Customers', style: TextStyle(fontWeight: FontWeight.w800)), backgroundColor: Colors.transparent),
-      body: data.customers.isEmpty
-          ? const Center(child: Text('No customers added yet'))
-          : ListView.builder(padding: const EdgeInsets.all(16), itemCount: data.customers.length, itemBuilder: (_, index) {
-              final customer = data.customers[index];
-              return Card(child: ListTile(
-                leading: const CircleAvatar(backgroundColor: mint, child: Icon(Icons.person, color: teal)),
-                title: Text(customer['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('${customer['mobile']}\n${customer['address']}'),
-                isThreeLine: true,
-                onTap: () => _customerReport(context, customer['name'] as String),
-              ));
-            }),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => _addCustomer(context), backgroundColor: teal, foregroundColor: Colors.white, icon: const Icon(Icons.person_add), label: const Text('New Customer')),
-    ));
-  }
-
-  void _customerReport(BuildContext context, String customer) {
-    final rows = data.rentals.where((r) => r['customer'] == customer).toList();
-    showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (sheetContext) => DraggableScrollableSheet(expand: false, builder: (_, controller) => ListView(controller: controller, padding: const EdgeInsets.all(18), children: [
-      Text(customer, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 12),
-      if (rows.isEmpty) const Text('No rental history.'),
-      ...rows.reversed.map((r) => Card(child: ListTile(title: Text('${r['item']} • ${r['date']}'), subtitle: Text('Issued: ${r['issued'] ?? r['qty']}   Received: ${r['received'] ?? 0}   Due Item: ${r['qty']}\nDays: ${r['days']}   Rate: ₹${_money(r['rate'])}   Amount: ₹${_money(r['amount'])}')))),
-    ])));
-  }
-
-  Future<void> _addCustomer(BuildContext context) async {
-    final name = TextEditingController();
-    final mobile = TextEditingController();
-    final address = TextEditingController();
-    final saved = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('New Customer'), content: Column(mainAxisSize: MainAxisSize.min, children: [_field(name, 'Customer Name'), _field(mobile, 'Mobile'), _field(address, 'Address')]), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save'))]));
-    if (saved != true || name.text.trim().isEmpty) return;
-    data.customers.add({'id': data.id(), 'name': name.text.trim(), 'mobile': mobile.text.trim(), 'address': address.text.trim()});
-    await data.save();
-    onChanged();
-  }
-}
-
-class ReportsPage extends StatelessWidget {
-  final Store data;
-  const ReportsPage({super.key, required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(child: Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Reports', style: TextStyle(fontWeight: FontWeight.w800)), backgroundColor: Colors.transparent),
-      body: data.rentals.isEmpty
-          ? const Center(child: Text('No report data yet'))
-          : SingleChildScrollView(scrollDirection: Axis.horizontal, child: SingleChildScrollView(child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Date')),
-                DataColumn(label: Text('Customer')),
-                DataColumn(label: Text('Item')),
-                DataColumn(label: Text('Issued')),
-                DataColumn(label: Text('Received')),
-                DataColumn(label: Text('Days')),
-                DataColumn(label: Text('Rate')),
-                DataColumn(label: Text('Amount')),
-                DataColumn(label: Text('Due')),
-              ],
-              rows: data.rentals.reversed.map((r) => DataRow(cells: [
-                DataCell(Text('${r['date']}')),
-                DataCell(Text('${r['customer']}')),
-                DataCell(Text('${r['item']}')),
-                DataCell(Text('${r['issued'] ?? r['qty']}')),
-                DataCell(Text('${r['received'] ?? 0}')),
-                DataCell(Text('${r['days']}')),
-                DataCell(Text('₹${_money(r['rate'])}')),
-                DataCell(Text('₹${_money(r['amount'])}')),
-                DataCell(Text('${r['qty']}')),
-              ])).toList(),
-            ))),
-    ));
-  }
-}
-
-Widget _field(TextEditingController controller, String label, {bool number = false}) {
-  return Padding(padding: const EdgeInsets.only(bottom: 10), child: TextField(controller: controller, keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text, decoration: InputDecoration(labelText: label, border: const OutlineInputBorder())));
-}
-
-int _int(dynamic value) => value is int ? value : int.tryParse('$value') ?? 0;
-double _num(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
-String _money(dynamic value) => _num(value).toStringAsFixed(0);
-String _date() {
-  final now = DateTime.now();
-  return '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-}
+Future<void> addItem(BuildContext c,DB db,VoidCallback refresh)async{final n=TextEditingController(),cat=TextEditingController(),qty=TextEditingController(text:'1'),rate=TextEditingController(text:'0');String type='Per Day';final ok=await showDialog<bool>(context:c,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('Add Rental Item'),content:SingleChildScrollView(child:Column(children:[field(n,'Item Name'),field(cat,'Category'),field(qty,'Total Quantity',num:true),field(rate,'Rent Price',num:true),DropdownButtonFormField<String>(initialValue:type,decoration:const InputDecoration(labelText:'Rent Type'),items:const['Per Day','Per Hour','Per Event'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>set(()=>type=v??type))])),actions:[TextButton(onPressed:()=>Navigator.pop(x,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(x,true),child:const Text('Save'))])));if(ok!=true||n.text.trim().isEmpty)return;final q=int.tryParse(qty.text)??0;db.items.add({'id':db.id(),'name':n.text.trim(),'category':cat.text.trim(),'qty':q,'available':q,'rate':double.tryParse(rate.text)??0,'type':type});await db.save();refresh();}
+Future<void> addCustomer(BuildContext c,DB db,VoidCallback refresh)async{final n=TextEditingController(),m=TextEditingController(),a=TextEditingController();final ok=await showDialog<bool>(context:c,builder:(x)=>AlertDialog(title:const Text('New Customer'),content:Column(mainAxisSize:MainAxisSize.min,children:[field(n,'Customer Name'),field(m,'Mobile Number'),field(a,'Address',lines:2)]),actions:[TextButton(onPressed:()=>Navigator.pop(x,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(x,true),child:const Text('Save'))]));if(ok!=true||n.text.trim().isEmpty)return;db.customers.add({'id':db.id(),'name':n.text.trim(),'mobile':m.text.trim(),'address':a.text.trim()});await db.save();refresh();}
+Future<void> rental(BuildContext c,DB db,VoidCallback refresh)async{if(db.items.isEmpty||db.customers.isEmpty){ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('Add an item and customer first.')));return;}String customer=db.customers.first['name'],item=db.items.first['name'];final q=TextEditingController(text:'1'),days=TextEditingController(text:'1'),rate=TextEditingController(text:'${asDouble(db.items.first['rate'])}');final ok=await showDialog<bool>(context:c,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('New Rental'),content:SingleChildScrollView(child:Column(children:[DropdownButtonFormField<String>(initialValue:customer,decoration:const InputDecoration(labelText:'Customer'),items:db.customers.map((v)=>DropdownMenuItem(value:v['name'] as String,child:Text(v['name']))).toList(),onChanged:(v)=>set(()=>customer=v??customer)),DropdownButtonFormField<String>(initialValue:item,decoration:const InputDecoration(labelText:'Item'),items:db.items.map((v)=>DropdownMenuItem(value:v['name'] as String,child:Text(v['name']))).toList(),onChanged:(v){if(v!=null)set(()=>{item=v;rate.text='${asDouble(db.items.firstWhere((z)=>z['name']==item)['rate'])}';});}),field(q,'Quantity',num:true),field(days,'Days',num:true),field(rate,'Rate (manual edit)',num:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(x,true),child:const Text('Create Rental'))])));if(ok!=true)return;final it=db.items.firstWhere((v)=>v['name']==item);final qty=int.tryParse(q.text)??0,d=int.tryParse(days.text)??1,r=double.tryParse(rate.text)??0;if(qty<=0||d<=0||qty>numi(it['available'])){ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('Quantity is greater than available stock.')));return;}final amount=qty*d*r;it['available']=numi(it['available'])-qty;db.rentals.add({'id':db.id(),'customer':customer,'item':item,'qty':qty,'received':0,'days':d,'rate':r,'amount':amount,'date':today(),'status':'issued'});await db.save();refresh();await invoicePdf(c,db.rentals.last);}
+Future<void> receive(BuildContext c,DB db,VoidCallback refresh)async{final active=db.rentals.where((r)=>numi(r['qty'])>numi(r['received'])).toList();if(active.isEmpty){ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content:Text('No issued items to receive.')));return;}String id=active.first['id'];final q=TextEditingController(text:'1');final ok=await showDialog<bool>(context:c,builder:(x)=>StatefulBuilder(builder:(x,set)=>AlertDialog(title:const Text('Receive Item'),content:Column(mainAxisSize:MainAxisSize.min,children:[DropdownButtonFormField<String>(initialValue:id,decoration:const InputDecoration(labelText:'Issued rental'),items:active.map((r)=>DropdownMenuItem(value:r['id'] as String,child:Text('${r['customer']} • ${r['item']}'))).toList(),onChanged:(v)=>set(()=>id=v??id)),field(q,'Received Quantity',num:true)])),actions:[TextButton(onPressed:()=>Navigator.pop(x,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(x,true),child:const Text('Receive'))])));if(ok!=true)return;final r=active.firstWhere((v)=>v['id']==id);final n=int.tryParse(q.text)??0,remaining=numi(r['qty'])-numi(r['received']);if(n<=0||n>remaining)return;r['received']=numi(r['received'])+n;final it=db.items.firstWhere((v)=>v['name']==r['item']);it['available']=numi(it['available'])+n;if(numi(r['received'])>=numi(r['qty']))r['status']='received';await db.save();refresh();}
+Future<void> invoices(BuildContext c,DB db)async=>showModalBottomSheet(context:c,showDragHandle:true,isScrollControlled:true,builder:(x)=>SafeArea(child:SizedBox(height:MediaQuery.sizeOf(x).height*.72,child:Column(children:[const Padding(padding:EdgeInsets.all(16),child:Text('Invoices',style:TextStyle(fontSize:22,fontWeight:FontWeight.w900))),Expanded(child:ListView.builder(padding:const EdgeInsets.symmetric(horizontal:16),itemCount:db.rentals.length,itemBuilder:(_,i){final r=db.rentals.reversed.elementAt(i);return Card(margin:const EdgeInsets.only(bottom:8),child:ListTile(title:Text('${r['customer']} • ${r['item']}',style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text('${r['date']} • ${r['days']} day(s)'),trailing:IconButton(onPressed:()=>invoicePdf(x,r),icon:const Icon(Icons.picture_as_pdf_rounded,color:primary)));}))]))));
+Future<void> invoicePdf(BuildContext c,Map<String,dynamic> r)async{final doc=pw.Document();doc.addPage(pw.Page(build:(_)=>pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[pw.Text('RentFlow',style:pw.TextStyle(fontSize:26,fontWeight:pw.FontWeight.bold)),pw.Text('By PaliaAPK HUB'),pw.SizedBox(height:18),pw.Text('RENTAL INVOICE',style:pw.TextStyle(fontSize:18,fontWeight:pw.FontWeight.bold)),pw.Divider(),pw.Text('Date: ${r['date']}'),pw.Text('Customer: ${r['customer']}'),pw.SizedBox(height:15),pw.Table.fromTextArray(data:[['Item','Qty','Days','Rate','Amount'],[r['item'].toString(),r['qty'].toString(),r['days'].toString(),'Rs ${money(r['rate'])}','Rs ${money(r['amount'])}']]),pw.SizedBox(height:18),pw.Align(alignment:pw.Alignment.centerRight,child:pw.Text('TOTAL Rs ${money(r['amount'])}',style:pw.TextStyle(fontSize:17,fontWeight:pw.FontWeight.bold))),pw.SizedBox(height:28),pw.Text('Developer by ShanPalia')]));await Printing.layoutPdf(onLayout:(_)=>doc.save());}
+Future<void> customerReport(BuildContext c,DB db,String customer)async{final rows=db.rentals.where((r)=>r['customer']==customer).toList().reversed.toList();await showModalBottomSheet(context:c,showDragHandle:true,isScrollControlled:true,builder:(x)=>SafeArea(child:SizedBox(height:MediaQuery.sizeOf(x).height*.8,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Padding(padding:const EdgeInsets.all(18),child:Text(customer,style:const TextStyle(fontSize:24,fontWeight:FontWeight.w900))),Expanded(child:SingleChildScrollView(scrollDirection:Axis.horizontal,child:DataTable(columns:const[DataColumn(label:Text('Date')),DataColumn(label:Text('Item')),DataColumn(label:Text('Issued')),DataColumn(label:Text('Received')),DataColumn(label:Text('Days')),DataColumn(label:Text('Rate')),DataColumn(label:Text('Amount')),DataColumn(label:Text('Due'))],rows:rows.map((r)=>DataRow(cells:[DataCell(Text(r['date'])),DataCell(Text(r['item'])),DataCell(Text('${r['qty']}')),DataCell(Text('${r['received']}')),DataCell(Text('${r['days']}')),DataCell(Text('Rs ${money(r['rate'])}')),DataCell(Text('Rs ${money(r['amount'])}')),DataCell(Text('${numi(r['qty'])-numi(r['received'])}'))])).toList()))]))));}
+Future<void> about(BuildContext c)=>showDialog(context:c,builder:(x)=>AlertDialog(title:const Text('RentFlow'),content:const Text('RentFlow\nBy PaliaAPK HUB\nDeveloper by ShanPalia'),actions:[TextButton(onPressed:()=>Navigator.pop(x),child:const Text('Close'))]));
+Widget field(TextEditingController c,String label,{bool num=false,int lines=1})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,maxLines:lines,keyboardType:num?const TextInputType.numberWithOptions(decimal:true):TextInputType.text,decoration:InputDecoration(labelText:label)));
+int numi(dynamic v)=>v is int?v:int.tryParse('$v')??0;double asDouble(dynamic v)=>v is num?v.toDouble():double.tryParse('$v')??0;String money(dynamic v){final d=asDouble(v);return d==d.roundToDouble()?d.toInt().toString():d.toStringAsFixed(2);}String today(){final d=DateTime.now();return '${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}/${d.year}';}
