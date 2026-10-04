@@ -28,23 +28,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.14.0'
-
       - name: Create Android local.properties
         shell: bash
         run: |
           set -euo pipefail
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
-
-      - name: Generate Gradle wrapper
-        shell: bash
-        run: |
-          set -euo pipefail
-          gradle -p android wrapper --gradle-version 8.14.0
-          chmod +x android/gradlew
 
       - name: Verify Android project
         shell: bash
@@ -54,6 +42,7 @@ jobs:
           test -f lib/app.dart
           test -f android/gradlew
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          grep -E 'distributionUrl=.*gradle-(8\.14|8\.14\.1|9\.)' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Get dependencies
         run: flutter pub get
