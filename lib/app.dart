@@ -1,354 +1,153 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const primary = Color(0xFF00A889);
 const dark = Color(0xFF10241F);
-const bg = Color(0xFFF6FAF8);
-const soft = Color(0xFFE8F7F2);
-const version = '1.0.3';
+const bg = Color(0xFFF5FAF8);
+const soft = Color(0xFFE7F7F2);
+const line = Color(0xFFDDEBE6);
 const website = 'https://shanpalia.github.io/WebsitePaliaAPK_V.2/';
-const updateUrl = 'https://shanpalia.github.io/WebsitePaliaAPK_V.2/rentflow_update_v2.json';
+const version = '1.0.3';
 
 int asInt(dynamic v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
 double asDouble(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
 String money(dynamic v) => '₹${asDouble(v).toStringAsFixed(0)}';
+String today() => DateTime.now().toIso8601String().substring(0, 10);
+String id() => DateTime.now().microsecondsSinceEpoch.toString();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const RentFlowApp());
 }
 
-class RentFlowApp extends StatelessWidget {
-  const RentFlowApp({super.key});
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    debugShowCheckedModeBanner: false,
-    title: 'RentFlow',
-    theme: ThemeData(
-      useMaterial3: true,
-      scaffoldBackgroundColor: bg,
-      colorScheme: ColorScheme.fromSeed(seedColor: primary, brightness: Brightness.light),
-      appBarTheme: const AppBarTheme(backgroundColor: bg, foregroundColor: dark, elevation: 0),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true, fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Color(0xFFE3ECE9))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primary, width: 1.5)),
-      ),
-    ),
-    home: const SplashPage(),
-  );
-}
-
-class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
-  @override State<SplashPage> createState() => _SplashPageState();
-}
-class _SplashPageState extends State<SplashPage> {
-  @override void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const AppShell()));
-    });
-  }
-  @override Widget build(BuildContext context) => Scaffold(
-    body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(width: 92, height: 92, decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(28), boxShadow: const [BoxShadow(color: Color(0x2200A889), blurRadius: 24, offset: Offset(0, 10))]), child: const Icon(Icons.home_work_rounded, color: Colors.white, size: 54)),
-      const SizedBox(height: 20),
-      const Text('RentFlow', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: dark)),
-      const SizedBox(height: 4),
-      const Text('Rental Management', style: TextStyle(color: Colors.black54)),
-      const SizedBox(height: 22),
-      const Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)),
-      const Text('Developer by ShanPalia', style: TextStyle(color: Colors.black45)),
-    ])),
-  );
-}
-
-class Store {
+class Store extends ChangeNotifier {
   late SharedPreferences prefs;
-  String shop = '';
-  String owner = '';
-  String phone = '';
-  String address = '';
-  bool skippedRegistration = false;
-  List<Map<String, dynamic>> items = [];
-  List<Map<String, dynamic>> customers = [];
-  List<Map<String, dynamic>> rentals = [];
+  List<Map<String, dynamic>> shops = [];
+  int active = 0;
 
-  bool get registered => shop.trim().isNotEmpty && owner.trim().isNotEmpty;
+  Map<String, dynamic> get shop => shops.isEmpty ? <String, dynamic>{} : shops[active.clamp(0, shops.length - 1)];
+  bool get registered => shops.isNotEmpty;
+  List<Map<String, dynamic>> get items => _list('items');
+  List<Map<String, dynamic>> get customers => _list('customers');
+  List<Map<String, dynamic>> get issued => _list('issued');
+  List<Map<String, dynamic>> get returns => _list('returns');
+  List<Map<String, dynamic>> _list(String key) => (shop[key] as List? ?? []).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
 
   Future<void> load() async {
     prefs = await SharedPreferences.getInstance();
-    shop = prefs.getString('shop') ?? '';
-    owner = prefs.getString('owner') ?? '';
-    phone = prefs.getString('phone') ?? '';
-    address = prefs.getString('address') ?? '';
-    skippedRegistration = prefs.getBool('registration_skipped') ?? false;
-    items = readList('items');
-    customers = readList('customers');
-    rentals = readList('rentals');
-  }
-  List<Map<String, dynamic>> readList(String key) {
-    try {
-      final v = jsonDecode(prefs.getString(key) ?? '[]');
-      if (v is List) return v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-    } catch (_) {}
-    return [];
-  }
-  Future<void> save() async {
-    await prefs.setString('shop', shop);
-    await prefs.setString('owner', owner);
-    await prefs.setString('phone', phone);
-    await prefs.setString('address', address);
-    await prefs.setBool('registration_skipped', skippedRegistration);
-    await prefs.setString('items', jsonEncode(items));
-    await prefs.setString('customers', jsonEncode(customers));
-    await prefs.setString('rentals', jsonEncode(rentals));
-  }
-}
-
-class AppShell extends StatefulWidget {
-  const AppShell({super.key});
-  @override State<AppShell> createState() => _AppShellState();
-}
-class _AppShellState extends State<AppShell> {
-  final store = Store();
-  int index = 0;
-  bool loading = true;
-  @override void initState() { super.initState(); store.load().then((_) { if (mounted) setState(() => loading = false); }); }
-  void refresh() { if (mounted) setState(() {}); }
-  Future<bool> requireRegistration(BuildContext context) async {
-    if (store.registered) return true;
-    final register = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Register your shop first'),
-        content: const Text('Please register your shop before adding items, customers or rentals. You can continue browsing without registration.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Later')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.storefront), label: const Text('Register Shop')),
-        ],
-      ),
-    );
-    if (register == true && context.mounted) {
-      await Navigator.push(context, MaterialPageRoute(builder: (_) => ShopRegistrationPage(store: store)));
-      refresh();
+    final raw = prefs.getString('shops_v2');
+    if (raw != null) {
+      try { shops = (jsonDecode(raw) as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList(); } catch (_) {}
     }
-    return store.registered;
+    active = prefs.getInt('active_shop') ?? 0;
+    if (shops.isEmpty) {
+      final oldShop = prefs.getString('shop') ?? '';
+      final oldOwner = prefs.getString('owner') ?? '';
+      if (oldShop.isNotEmpty) {
+        shops = [_newShop(oldShop, oldOwner, prefs.getString('phone') ?? '', prefs.getString('address') ?? '')];
+        shops[0]['items'] = _decodeOld('items');
+        shops[0]['customers'] = _decodeOld('customers');
+        shops[0]['issued'] = _decodeOld('rentals');
+        await save();
+      }
+    }
+    if (shops.isNotEmpty) active = active < 0 ? 0 : (active >= shops.length ? shops.length - 1 : active);
   }
-  @override Widget build(BuildContext context) {
-    if (loading) return const Scaffold(body: Center(child: CircularProgressIndicator(color: primary)));
-    final pages = [
-      HomePage(store: store, onRegister: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ShopRegistrationPage(store: store))); refresh(); }, onEntry: requireRegistration),
-      ItemsPage(store: store, onEntry: requireRegistration, refresh: refresh),
-      CustomersPage(store: store, onEntry: requireRegistration, refresh: refresh),
-      RentalsPage(store: store, onEntry: requireRegistration, refresh: refresh),
-      SettingsPage(store: store, onRegister: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ShopRegistrationPage(store: store))); refresh(); }),
-    ];
-    return PopScope(
-      canPop: index == 0,
-      onPopInvokedWithResult: (didPop, result) { if (!didPop && index != 0) setState(() => index = 0); },
-      child: Scaffold(
-        body: pages[index],
-        bottomNavigationBar: NavigationBar(
-          backgroundColor: Colors.white,
-          indicatorColor: soft,
-          selectedIndex: index,
-          onDestinationSelected: (v) => setState(() => index = v),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Items'),
-            NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Customers'),
-            NavigationDestination(icon: Icon(Icons.assignment_outlined), selectedIcon: Icon(Icons.assignment), label: 'Rentals'),
-            NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
-          ],
-        ),
-      ),
-    );
+
+  List<Map<String, dynamic>> _decodeOld(String key) {
+    try { return (jsonDecode(prefs.getString(key) ?? '[]') as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList(); } catch (_) { return []; }
   }
-}
 
-class ShopRegistrationPage extends StatefulWidget {
-  final Store store;
-  const ShopRegistrationPage({required this.store, super.key});
-  @override State<ShopRegistrationPage> createState() => _ShopRegistrationPageState();
-}
-class _ShopRegistrationPageState extends State<ShopRegistrationPage> {
-  late final TextEditingController shop, owner, phone, address;
-  @override void initState() { super.initState(); shop = TextEditingController(text: widget.store.shop); owner = TextEditingController(text: widget.store.owner); phone = TextEditingController(text: widget.store.phone); address = TextEditingController(text: widget.store.address); }
-  @override void dispose() { shop.dispose(); owner.dispose(); phone.dispose(); address.dispose(); super.dispose(); }
-  Future<void> save() async {
-    if (shop.text.trim().isEmpty || owner.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop name and owner name are required.'))); return; }
-    widget.store.shop = shop.text.trim(); widget.store.owner = owner.text.trim(); widget.store.phone = phone.text.trim(); widget.store.address = address.text.trim(); widget.store.skippedRegistration = false;
-    await widget.store.save();
-    if (mounted) Navigator.pop(context);
+  Map<String, dynamic> _newShop(String name, String owner, String phone, String address) => {
+    'id': id(), 'name': name, 'owner': owner, 'phone': phone, 'address': address,
+    'items': <Map<String, dynamic>>[], 'customers': <Map<String, dynamic>>[], 'issued': <Map<String, dynamic>>[], 'returns': <Map<String, dynamic>>[],
+  };
+
+  Future<void> addShop({required String name, required String owner, required String phone, required String address}) async {
+    shops.add(_newShop(name, owner, phone, address));
+    active = shops.length - 1;
+    await save(); notifyListeners();
   }
-  @override Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w800))),
-    body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
-      Container(padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: soft, borderRadius: BorderRadius.circular(24)), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.storefront_rounded, color: primary, size: 38), SizedBox(height: 12), Text('Set up your shop', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: dark)), SizedBox(height: 5), Text('Register once to start adding items, customers and rental entries.', style: TextStyle(color: Colors.black54))])),
-      const SizedBox(height: 22),
-      TextField(controller: shop, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Shop name *', prefixIcon: Icon(Icons.store_outlined))),
-      const SizedBox(height: 12),
-      TextField(controller: owner, textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Owner name *', prefixIcon: Icon(Icons.person_outline))),
-      const SizedBox(height: 12),
-      TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile number', prefixIcon: Icon(Icons.phone_outlined))),
-      const SizedBox(height: 12),
-      TextField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: 'Shop address', prefixIcon: Icon(Icons.location_on_outlined))),
-      const SizedBox(height: 24),
-      FilledButton.icon(onPressed: save, icon: const Icon(Icons.check_circle_outline), label: const Text('Save & Continue'), style: FilledButton.styleFrom(backgroundColor: primary, minimumSize: const Size.fromHeight(54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)))),
-    ])),
-  );
+  Future<void> updateShop(int index, Map<String, String> data) async { shops[index].addAll(data); await save(); notifyListeners(); }
+  Future<void> deleteShop(int index) async { shops.removeAt(index); if (shops.isEmpty) active = 0; else if (active >= shops.length) active = shops.length - 1; await save(); notifyListeners(); }
+  Future<void> selectShop(int index) async { active = index; await save(); notifyListeners(); }
+  Future<void> save() async { await prefs.setString('shops_v2', jsonEncode(shops)); await prefs.setInt('active_shop', active); }
+  Future<void> saveData() async { await save(); notifyListeners(); }
 }
 
-class HomePage extends StatelessWidget {
-  final Store store; final VoidCallback onRegister; final Future<bool> Function(BuildContext) onEntry;
-  const HomePage({required this.store, required this.onRegister, required this.onEntry, super.key});
-  @override Widget build(BuildContext context) {
-    final issuedQty = store.rentals.fold<int>(0, (n, r) => n + (asInt(r['qty']) - asInt(r['received'])));
-    final active = store.rentals.where((r) => asInt(r['received']) < asInt(r['qty'])).length;
-    final totalRent = store.rentals.fold<double>(0, (n, r) => n + asDouble(r['amount']));
-    return SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(18, 18, 18, 24), children: [
-      Row(children: [
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(store.registered ? store.shop : 'Welcome to RentFlow', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: dark)), Text(store.registered ? 'Rental dashboard' : 'Manage your rentals simply', style: const TextStyle(color: Colors.black54))])),
-        if (!store.registered) IconButton.filledTonal(onPressed: onRegister, icon: const Icon(Icons.storefront)),
-        if (store.registered) CircleAvatar(backgroundColor: soft, child: const Icon(Icons.store, color: primary)),
-      ]),
-      const SizedBox(height: 20),
-      if (!store.registered) _registerBanner(onRegister),
-      if (!store.registered) const SizedBox(height: 16),
-      Row(children: [
-        statCard('Items', '${store.items.length}', Icons.inventory_2_outlined),
-        const SizedBox(width: 10), statCard('Customers', '${store.customers.length}', Icons.people_outline),
-      ]),
-      const SizedBox(height: 10),
-      Row(children: [
-        statCard('Active', '$active', Icons.assignment_outlined),
-        const SizedBox(width: 10), statCard('Issued Qty', '$issuedQty', Icons.local_shipping_outlined),
-      ]),
-      const SizedBox(height: 18),
-      const Text('Quick actions', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: dark)),
-      const SizedBox(height: 10),
-      Row(children: [
-        quickAction(context, 'Add Item', Icons.add_box_outlined, () async { if (await onEntry(context) && context.mounted) await itemDialog(context, store, () {}); }),
-        const SizedBox(width: 10), quickAction(context, 'Customer', Icons.person_add_alt_1_outlined, () async { if (await onEntry(context) && context.mounted) await customerDialog(context, store); }),
-        const SizedBox(width: 10), quickAction(context, 'New Rental', Icons.add_business_outlined, () async { if (await onEntry(context) && context.mounted) await rentalDialog(context, store, () {}); }),
-      ]),
-      const SizedBox(height: 20),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Recent rentals', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: dark)), Text(money(totalRent), style: const TextStyle(fontWeight: FontWeight.w900, color: primary))]),
-      const SizedBox(height: 8),
-      if (store.rentals.isEmpty) emptyCard(Icons.receipt_long_outlined, 'No rentals yet', 'Your latest rental entries will appear here.')
-      else ...store.rentals.reversed.take(6).map((r) => rentalCard(r)),
-    ]));
-  }
+class RentFlowApp extends StatelessWidget {
+  const RentFlowApp({super.key});
+  @override Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false, title: 'RentFlow',
+    theme: ThemeData(useMaterial3: true, scaffoldBackgroundColor: bg, colorScheme: ColorScheme.fromSeed(seedColor: primary),
+      appBarTheme: const AppBarTheme(backgroundColor: bg, foregroundColor: dark, elevation: 0),
+      inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: line)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primary, width: 1.5))),
+    ), home: const Splash());
 }
 
-Widget _registerBanner(VoidCallback onRegister) => Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: dark, borderRadius: BorderRadius.circular(20)), child: Row(children: [const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Register your shop', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Unlock item, customer and rental entry.', style: TextStyle(color: Colors.white70))])), TextButton(onPressed: onRegister, child: const Text('Register', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)))]));
-Widget statCard(String label, String value, IconData icon) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 14, offset: Offset(0, 5))]), child: Row(children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: soft, borderRadius: BorderRadius.circular(13)), child: Icon(icon, color: primary)), const SizedBox(width: 11), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: dark)), Text(label, style: const TextStyle(color: Colors.black54))])])));
-Widget quickAction(BuildContext context, String text, IconData icon, VoidCallback onTap) => Expanded(child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(height: 94, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE3ECE9))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: primary, size: 28), const SizedBox(height: 7), Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: dark))]))));
-Widget emptyCard(IconData icon, String title, String sub) => Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(children: [Icon(icon, color: primary, size: 38), const SizedBox(height: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.w800, color: dark)), Text(sub, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54))]));
-Widget rentalCard(Map<String, dynamic> r) { final complete = asInt(r['received']) >= asInt(r['qty']); return Container(margin: const EdgeInsets.only(bottom: 9), padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17)), child: Row(children: [CircleAvatar(backgroundColor: complete ? const Color(0xFFE7F7EA) : soft, child: Icon(complete ? Icons.check : Icons.schedule, color: complete ? Colors.green : primary)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${r['customer']}', style: const TextStyle(fontWeight: FontWeight.w800, color: dark)), Text('${r['item']} • Qty ${r['qty']} • ${r['date']}', style: const TextStyle(color: Colors.black54, fontSize: 12))])), Text(money(r['amount']), style: const TextStyle(fontWeight: FontWeight.w900, color: primary))])); }
+class Logo extends StatelessWidget { final double size; const Logo({this.size = 54, super.key}); @override Widget build(BuildContext c) => Container(width:size,height:size,padding:EdgeInsets.all(size*.06),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(size*.26),border:Border.all(color:line)),child:SvgPicture.asset('assets/rentflow_logo.svg')); }
 
-class ItemsPage extends StatelessWidget {
-  final Store store; final Future<bool> Function(BuildContext) onEntry; final VoidCallback refresh;
-  const ItemsPage({required this.store, required this.onEntry, required this.refresh, super.key});
-  @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Items', style: TextStyle(fontWeight: FontWeight.w900)), actions: [IconButton(onPressed: () async { if (await onEntry(context) && context.mounted) await itemDialog(context, store, refresh); }, icon: const Icon(Icons.add))]), body: store.items.isEmpty ? emptyCard(Icons.inventory_2_outlined, 'No items added', 'Add your rental inventory here.') : ListView.builder(padding: const EdgeInsets.all(18), itemCount: store.items.length, itemBuilder: (_, i) { final x = store.items[i]; final rented = store.rentals.where((r) => '${r['item']}' == '${x['name']}' && asInt(r['received']) < asInt(r['qty'])).fold<int>(0, (n, r) => n + asInt(r['qty']) - asInt(r['received'])); return itemTile(context, store, x, rented, refresh); }));
-}
-Widget itemTile(BuildContext context, Store store, Map<String, dynamic> x, int rented, VoidCallback refresh) => Dismissible(key: ValueKey('${x['name']}_${x.hashCode}'), background: Container(margin: const EdgeInsets.only(bottom: 10), alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(18)), child: const Icon(Icons.delete_outline, color: Colors.red)), confirmDismiss: (_) async => await confirmDelete(context, 'Delete item?', 'This item will be removed from inventory.'), onDismissed: (_) async { store.items.remove(x); await store.save(); refresh(); }, child: Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: Row(children: [Container(width: 48, height: 48, decoration: BoxDecoration(color: soft, borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.inventory_2, color: primary)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w900, color: dark)), Text('Total ${asInt(x['qty'])} • Available ${asInt(x['qty']) - rented}', style: const TextStyle(color: Colors.black54)), Text('Rent ${money(x['rent'])}', style: const TextStyle(color: primary, fontWeight: FontWeight.w700))])), IconButton(onPressed: () async { await itemDialog(context, store, refresh, existing: x); }, icon: const Icon(Icons.edit_outlined))])));
+class Splash extends StatefulWidget { const Splash({super.key}); @override State<Splash> createState()=>_SplashState(); }
+class _SplashState extends State<Splash>{ @override void initState(){super.initState();Future.delayed(const Duration(milliseconds:900),(){if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const Shell()));});} @override Widget build(BuildContext c)=>const Scaffold(body:Center(child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Logo(size:105),SizedBox(height:18),Text('RentFlow',style:TextStyle(fontSize:34,fontWeight:FontWeight.w900,color:dark)),SizedBox(height:5),Text('By PaliaAPK HUB',style:TextStyle(color:primary,fontWeight:FontWeight.w800)),SizedBox(height:3),Text('Developer by shanpalia',style:TextStyle(color:Colors.black45))]))); }
 
-class CustomersPage extends StatelessWidget {
-  final Store store; final Future<bool> Function(BuildContext) onEntry; final VoidCallback refresh;
-  const CustomersPage({required this.store, required this.onEntry, required this.refresh, super.key});
-  @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Customers', style: TextStyle(fontWeight: FontWeight.w900)), actions: [IconButton(onPressed: () async { if (await onEntry(context) && context.mounted) await customerDialog(context, store, refresh: refresh); }, icon: const Icon(Icons.person_add_alt_1))]), body: store.customers.isEmpty ? emptyCard(Icons.people_outline, 'No customers yet', 'Customer records will appear here.') : ListView.builder(padding: const EdgeInsets.all(18), itemCount: store.customers.length, itemBuilder: (_, i) { final x = store.customers[i]; final count = store.rentals.where((r) => '${r['customer']}' == '${x['name']}').length; return Container(margin: const EdgeInsets.only(bottom: 10), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5), leading: CircleAvatar(backgroundColor: soft, child: Text('${x['name']}'.trim().isEmpty ? '?' : '${x['name']}'.trim()[0].toUpperCase(), style: const TextStyle(color: primary, fontWeight: FontWeight.w900))), title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800, color: dark)), subtitle: Text('${x['phone'] ?? ''} • $count rentals'), trailing: PopupMenuButton<String>(onSelected: (v) async { if (v == 'edit') await customerDialog(context, store, existing: x, refresh: refresh); if (v == 'delete' && await confirmDelete(context, 'Delete customer?', 'Customer record will be removed.')) { store.customers.remove(x); await store.save(); refresh(); } }, itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('Edit')), PopupMenuItem(value: 'delete', child: Text('Delete'))]))); }));
+class Shell extends StatefulWidget { const Shell({super.key}); @override State<Shell> createState()=>_ShellState(); }
+class _ShellState extends State<Shell>{ final Store store=Store(); int tab=0; bool loading=true;
+  @override void initState(){super.initState();store.load().then((_){if(mounted)setState(()=>loading=false);});}
+  Future<bool> gate(BuildContext context) async { if(store.registered)return true; final ok=await showDialog<bool>(context:context,builder:(d)=>AlertDialog(title:const Text('Register your shop first'),content:const Text('You can browse the app, but registration is required before adding an entry.'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Skip')),FilledButton.icon(onPressed:()=>Navigator.pop(d,true),icon:const Icon(Icons.storefront_rounded),label:const Text('Register Shop'))])); if(ok==true&&context.mounted)await shopForm(context,store); return store.registered; }
+  @override Widget build(BuildContext context){ if(loading)return const Scaffold(body:Center(child:CircularProgressIndicator(color:primary))); final pages=<Widget>[Home(store:store,gate:gate),ItemsPage(store:store,gate:gate),CustomersPage(store:store,gate:gate),IssuedPage(store:store,gate:gate),SettingsPage(store:store)]; return AnimatedBuilder(animation:store,builder:(_,__)=>PopScope(canPop:tab==0,onPopInvokedWithResult:(didPop,r){if(!didPop&&tab!=0)setState(()=>tab=0);},child:Scaffold(body:pages[tab],bottomNavigationBar:NavigationBar(backgroundColor:Colors.white,indicatorColor:soft,selectedIndex:tab,onDestinationSelected:(v)=>setState(()=>tab=v),destinations:const[NavigationDestination(icon:Icon(Icons.grid_view_rounded),label:'Home'),NavigationDestination(icon:Icon(Icons.inventory_2_outlined),label:'Items'),NavigationDestination(icon:Icon(Icons.people_outline_rounded),label:'Customers'),NavigationDestination(icon:Icon(Icons.assignment_outlined),label:'Issued'),NavigationDestination(icon:Icon(Icons.settings_outlined),label:'Settings')])))); }
 }
 
-class RentalsPage extends StatelessWidget {
-  final Store store; final Future<bool> Function(BuildContext) onEntry; final VoidCallback refresh;
-  const RentalsPage({required this.store, required this.onEntry, required this.refresh, super.key});
-  @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Rentals', style: TextStyle(fontWeight: FontWeight.w900)), actions: [IconButton(onPressed: () async { if (await onEntry(context) && context.mounted) await rentalDialog(context, store, refresh); }, icon: const Icon(Icons.add_business_outlined))]), body: store.rentals.isEmpty ? emptyCard(Icons.assignment_outlined, 'No rental entries', 'Create a rental after adding an item and customer.') : ListView.builder(padding: const EdgeInsets.all(18), itemCount: store.rentals.length, itemBuilder: (_, i) => rentalActionTile(context, store, store.rentals[store.rentals.length - 1 - i], refresh)));
+class Home extends StatelessWidget { final Store store; final Future<bool> Function(BuildContext) gate; const Home({required this.store,required this.gate,super.key});
+  @override Widget build(BuildContext context){ final s=store.shop; final active=store.issued.where((e)=>!e['closed']).length; final qty=store.issued.fold<int>(0,(n,e)=>n+(e['items'] as List).fold<int>(0,(a,x)=>a+asInt(x['qty']))); return SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(18,18,18,28),children:[
+    Row(children:[const Logo(size:54),const SizedBox(width:12),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('RentFlow',style:TextStyle(fontSize:28,fontWeight:FontWeight.w900,color:dark)),Text('By PaliaAPK HUB',style:TextStyle(color:primary,fontWeight:FontWeight.w800))])),if(store.registered)InkWell(onTap:()=>shopManager(context,store),borderRadius:BorderRadius.circular(18),child:Container(width:160,padding:const EdgeInsets.all(9),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:line)),child:Row(children:[Container(width:38,height:38,decoration:BoxDecoration(color:soft,borderRadius:BorderRadius.circular(12)),child:const Icon(Icons.storefront_rounded,color:primary)),const SizedBox(width:8),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('SHOP',style:TextStyle(fontSize:9,color:primary,fontWeight:FontWeight.w900)),Text('${s['name']}',maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),Text('${s['owner']}',maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:10,color:Colors.black54))]))]))) else IconButton.filledTonal(onPressed:()=>shopForm(context,store),icon:const Icon(Icons.storefront_rounded))]),
+    if(!store.registered)...[const SizedBox(height:22),Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:dark,borderRadius:BorderRadius.circular(24)),child:Row(children:[const Icon(Icons.storefront_rounded,color:Colors.white),const SizedBox(width:12),const Expanded(child:Text('Register your shop to unlock entries.',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800))),TextButton(onPressed:()=>shopForm(context,store),child:const Text('Register',style:TextStyle(color:Colors.white)))]))],
+    const SizedBox(height:22),Row(children:[Stat('Items','${store.items.length}',Icons.inventory_2_outlined),const SizedBox(width:10),Stat('Customers','${store.customers.length}',Icons.people_outline_rounded)]),const SizedBox(height:10),Row(children:[Stat('Active','$active',Icons.assignment_outlined),const SizedBox(width:10),Stat('Issued Qty','$qty',Icons.local_shipping_outlined)]),
+    const SizedBox(height:25),const Text('Quick actions',style:TextStyle(fontSize:22,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:12),Wrap(spacing:10,runSpacing:10,children:[Action('Add Item',Icons.add_box_outlined,()=>gate(context).then((ok){if(ok&&context.mounted)itemForm(context,store);})),Action('Customer',Icons.person_add_alt_1_outlined,()=>gate(context).then((ok){if(ok&&context.mounted)customerForm(context,store);})),Action('Issued',Icons.assignment_outlined,()=>gate(context).then((ok){if(ok&&context.mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>IssuedPage(store:store,gate:gate)));})),Action('Return',Icons.keyboard_return_rounded,()=>gate(context).then((ok){if(ok&&context.mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ReturnPage(store:store)));})),Action('Reports',Icons.analytics_outlined,()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>ReportsPage(store:store))))]),
+    const SizedBox(height:26),const Text('Recent issued',style:TextStyle(fontSize:22,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:12),if(store.issued.isEmpty)const EmptyCard(title:'No issued entries yet',sub:'Your saved inventory issues will appear here.') else ...store.issued.reversed.take(4).map((e)=>EntryCard(e,onTap:()=>showIssuePreview(context,store,e))),
+  ])); }
 }
-Widget rentalActionTile(BuildContext context, Store store, Map<String, dynamic> r, VoidCallback refresh) { final done = asInt(r['received']) >= asInt(r['qty']); final pending = asInt(r['qty']) - asInt(r['received']); return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: Column(children: [Row(children: [CircleAvatar(backgroundColor: done ? const Color(0xFFE7F7EA) : soft, child: Icon(done ? Icons.check : Icons.schedule, color: done ? Colors.green : primary)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${r['item']}', style: const TextStyle(fontWeight: FontWeight.w900, color: dark)), Text('${r['customer']} • ${r['date']}', style: const TextStyle(color: Colors.black54))])), Text(money(r['amount']), style: const TextStyle(fontWeight: FontWeight.w900, color: primary))]), const SizedBox(height: 12), Row(children: [statusChip(done ? 'Returned' : '$pending pending', done), const Spacer(), if (!done) OutlinedButton.icon(onPressed: () async { await returnRental(context, store, r, refresh); }, icon: const Icon(Icons.assignment_return_outlined, size: 18), label: const Text('Return'))]) ])); }
-Widget statusChip(String text, bool done) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: done ? const Color(0xFFE7F7EA) : const Color(0xFFFFF4D8), borderRadius: BorderRadius.circular(20)), child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: done ? Colors.green.shade700 : Colors.orange.shade800)));
+class Stat extends StatelessWidget{final String label,value;final IconData icon;const Stat(this.label,this.value,this.icon,{super.key});@override Widget build(BuildContext c)=>Expanded(child:Container(padding:const EdgeInsets.all(15),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:line)),child:Row(children:[Container(width:44,height:44,decoration:BoxDecoration(color:soft,borderRadius:BorderRadius.circular(14)),child:Icon(icon,color:primary)),const SizedBox(width:10),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(value,style:const TextStyle(fontSize:22,fontWeight:FontWeight.w900,color:dark)),Text(label,style:const TextStyle(color:Colors.black54))])])));}
+class Action extends StatelessWidget{final String text;final IconData icon;final VoidCallback onTap;const Action(this.text,this.icon,this.onTap,{super.key});@override Widget build(BuildContext c)=>SizedBox(width:MediaQuery.sizeOf(c).width/2-25,child:InkWell(onTap:onTap,borderRadius:BorderRadius.circular(20),child:Container(height:104,decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:line)),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Container(width:46,height:46,decoration:BoxDecoration(color:soft,borderRadius:BorderRadius.circular(14)),child:Icon(icon,color:primary)),const SizedBox(height:8),Text(text,style:const TextStyle(fontWeight:FontWeight.w900,color:dark))]))));}
+class EmptyCard extends StatelessWidget{final String title,sub;const EmptyCard({required this.title,required this.sub,super.key});@override Widget build(BuildContext c)=>Container(padding:const EdgeInsets.all(30),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(24),border:Border.all(color:line)),child:Column(children:[const Icon(Icons.receipt_long_outlined,color:primary,size:48),const SizedBox(height:12),Text(title,style:const TextStyle(fontWeight:FontWeight.w900,color:dark,fontSize:17)),const SizedBox(height:5),Text(sub,textAlign:TextAlign.center,style:const TextStyle(color:Colors.black54))]));}
+class EntryCard extends StatelessWidget{final Map<String,dynamic> e;final VoidCallback onTap;const EntryCard(this.e,{required this.onTap,super.key});@override Widget build(BuildContext c){final list=e['items'] as List;return Card(color:Colors.white,elevation:0,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18),side:const BorderSide(color:line)),child:ListTile(onTap:onTap,leading:CircleAvatar(backgroundColor:soft,child:const Icon(Icons.receipt_long,color:primary)),title:Text('${e['customerName']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),subtitle:Text('${e['invoice']}  •  ${list.length} item(s)  •  ${e['date']}'),trailing:const Icon(Icons.chevron_right_rounded));}}
 
-class SettingsPage extends StatelessWidget {
-  final Store store; final VoidCallback onRegister;
-  const SettingsPage({required this.store, required this.onRegister, super.key});
-  @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w900))), body: ListView(padding: const EdgeInsets.all(18), children: [
-    Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: dark, borderRadius: BorderRadius.circular(22)), child: Row(children: [CircleAvatar(radius: 27, backgroundColor: soft, child: const Icon(Icons.store, color: primary)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(store.registered ? store.shop : 'Shop not registered', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)), Text(store.registered ? '${store.owner}\n${store.phone}' : 'Register to start entering data', style: const TextStyle(color: Colors.white70))])), IconButton(onPressed: onRegister, icon: Icon(store.registered ? Icons.edit_outlined : Icons.add_business, color: Colors.white))])),
-    const SizedBox(height: 14),
-    settingsSection('App', [
-      ListTile(leading: const Icon(Icons.system_update_outlined, color: primary), title: const Text('Check for App Update', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Check the latest RentFlow version'), onTap: () => checkUpdate(context)),
-      ListTile(leading: const Icon(Icons.language_outlined, color: primary), title: const Text('PaliaAPK HUB Website'), onTap: () => launchUrl(Uri.parse(website), mode: LaunchMode.externalApplication)),
-    ]),
-    const SizedBox(height: 12),
-    settingsSection('About', [const ListTile(leading: Icon(Icons.info_outline, color: primary), title: Text('RentFlow'), subtitle: Text('By PaliaAPK HUB • Developer by ShanPalia'))]),
-  ]));
-}
-Widget settingsSection(String title, List<Widget> children) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Padding(padding: const EdgeInsets.only(left: 4, bottom: 7), child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black54))), Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)), child: Column(children: children))]);
+class ItemsPage extends StatelessWidget{final Store store;final Future<bool> Function(BuildContext) gate;const ItemsPage({required this.store,required this.gate,super.key});@override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Items',style:TextStyle(fontWeight:FontWeight.w900)),actions:[IconButton(onPressed:()=>gate(c).then((ok){if(ok&&c.mounted)itemForm(c,store);}),icon:const Icon(Icons.add_rounded))]),body:store.items.isEmpty?const Padding(padding:EdgeInsets.all(18),child:EmptyCard(title:'No inventory items',sub:'Add your first rental item.')):ListView.builder(padding:const EdgeInsets.all(18),itemCount:store.items.length,itemBuilder:(c,i){final x=store.items[i];return Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:line)),child:Row(children:[Container(width:46,height:46,decoration:BoxDecoration(color:soft,borderRadius:BorderRadius.circular(14)),child:Center(child:Text('${x['serial']??i+1}',style:const TextStyle(color:primary,fontWeight:FontWeight.w900)))),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${x['name']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),Text('Quantity ${x['qty']}  •  Rent/day ${money(x['rent'])}',style:const TextStyle(color:Colors.black54,fontSize:12))])),IconButton.filledTonal(onPressed:()=>addStock(c,store,x),icon:const Icon(Icons.add,color:primary)),IconButton(onPressed:()=>itemForm(c,store,existing:x),icon:const Icon(Icons.edit_outlined))]));}));}
 
-Future<void> itemDialog(BuildContext context, Store store, VoidCallback refresh, {Map<String, dynamic>? existing}) async {
-  final name = TextEditingController(text: '${existing?['name'] ?? ''}');
-  final qty = TextEditingController(text: existing == null ? '1' : '${asInt(existing['qty'])}');
-  final rent = TextEditingController(text: existing == null ? '' : '${asDouble(existing['rent'])}');
-  final ok = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: Text(existing == null ? 'Add Rental Item' : 'Edit Item'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Item name')), const SizedBox(height: 10), TextField(controller: qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total quantity')), const SizedBox(height: 10), TextField(controller: rent, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Rent price'))]), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Save'))]));
-  if (ok != true || name.text.trim().isEmpty) return;
-  final data = {'name': name.text.trim(), 'qty': asInt(qty.text), 'rent': asDouble(rent.text)};
-  if (existing == null) store.items.add(data); else { existing..clear()..addAll(data); }
-  await store.save(); refresh();
-}
+class CustomersPage extends StatelessWidget{final Store store;final Future<bool> Function(BuildContext) gate;const CustomersPage({required this.store,required this.gate,super.key});@override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Customers',style:TextStyle(fontWeight:FontWeight.w900)),actions:[IconButton(onPressed:()=>gate(c).then((ok){if(ok&&c.mounted)customerForm(c,store);}),icon:const Icon(Icons.person_add_alt_1_rounded))]),body:store.customers.isEmpty?const Padding(padding:EdgeInsets.all(18),child:EmptyCard(title:'No customers',sub:'Add customer details before issuing inventory.')):ListView.builder(padding:const EdgeInsets.all(18),itemCount:store.customers.length,itemBuilder:(c,i){final x=store.customers[i];return Container(margin:const EdgeInsets.only(bottom:10),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:line)),child:ListTile(leading:CircleAvatar(backgroundColor:soft,child:const Icon(Icons.person,color:primary)),title:Text('${x['name']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),subtitle:Text('${x['mobile']??''}\n${x['address']??''}'),isThreeLine:true,trailing:IconButton(onPressed:()=>customerForm(c,store,existing:x),icon:const Icon(Icons.edit_outlined))));}));}
 
-Future<void> customerDialog(BuildContext context, Store store, {Map<String, dynamic>? existing, VoidCallback? refresh}) async {
-  final name = TextEditingController(text: '${existing?['name'] ?? ''}'); final phone = TextEditingController(text: '${existing?['phone'] ?? ''}');
-  final ok = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: Text(existing == null ? 'New Customer' : 'Edit Customer'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Customer name')), const SizedBox(height: 10), TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number'))]), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Save'))]));
-  if (ok != true || name.text.trim().isEmpty) return;
-  final data = {'name': name.text.trim(), 'phone': phone.text.trim()};
-  if (existing == null) store.customers.add(data); else { existing..clear()..addAll(data); }
-  await store.save(); refresh?.call();
-}
+class IssuedPage extends StatefulWidget{final Store store;final Future<bool> Function(BuildContext) gate;const IssuedPage({required this.store,required this.gate,super.key});@override State<IssuedPage> createState()=>_IssuedPageState();}
+class _IssuedPageState extends State<IssuedPage>{@override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Issued Inventory',style:TextStyle(fontWeight:FontWeight.w900)),actions:[IconButton.filledTonal(onPressed:()=>issueForm(c,widget.store),icon:const Icon(Icons.add,color:primary))]),body:widget.store.issued.isEmpty?const Padding(padding:EdgeInsets.all(18),child:EmptyCard(title:'No issued entries',sub:'Create an issue entry with multiple inventory items.')):ListView.builder(padding:const EdgeInsets.all(18),itemCount:widget.store.issued.length,itemBuilder:(c,i){final e=widget.store.issued[widget.store.issued.length-1-i];final items=e['items'] as List;return Container(margin:const EdgeInsets.only(bottom:10),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:line)),child:ListTile(onTap:()=>showIssuePreview(c,widget.store,e),leading:CircleAvatar(backgroundColor:soft,child:const Icon(Icons.assignment,color:primary)),title:Text('${e['invoice']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),subtitle:Text('${e['customerName']}  •  ${items.length} item(s)\n${e['date']}'),isThreeLine:true,trailing:const Icon(Icons.chevron_right_rounded));}));}}
 
-Future<void> rentalDialog(BuildContext context, Store store, VoidCallback refresh) async {
-  if (store.items.isEmpty || store.customers.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add an item and customer first.'))); return; }
-  String customer = '${store.customers.first['name']}'; String item = '${store.items.first['name']}';
-  final qty = TextEditingController(text: '1'); final due = TextEditingController();
-  final ok = await showDialog<bool>(context: context, builder: (c) => StatefulBuilder(builder: (context, setState) => AlertDialog(title: const Text('New Rental'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButtonFormField<String>(initialValue: customer, decoration: const InputDecoration(labelText: 'Customer'), items: store.customers.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(), onChanged: (v) => setState(() => customer = v ?? customer)), const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: item, decoration: const InputDecoration(labelText: 'Item'), items: store.items.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(), onChanged: (v) => setState(() => item = v ?? item)), const SizedBox(height: 10), TextField(controller: qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')), const SizedBox(height: 10), TextField(controller: due, decoration: const InputDecoration(labelText: 'Due date (optional)', prefixIcon: Icon(Icons.event_outlined))) ])), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Create Rental'))])));
-  if (ok != true) return;
-  final q = asInt(qty.text); final inv = store.items.firstWhere((x) => '${x['name']}' == item); final available = asInt(inv['qty']) - store.rentals.where((r) => '${r['item']}' == item && asInt(r['received']) < asInt(r['qty'])).fold<int>(0, (n, r) => n + asInt(r['qty']) - asInt(r['received']));
-  if (q <= 0 || q > available) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Only $available quantity is available.'))); return; }
-  final amount = q * asDouble(inv['rent']);
-  store.rentals.add({'customer': customer, 'item': item, 'qty': q, 'received': 0, 'amount': amount, 'date': DateTime.now().toString().substring(0, 10), 'due': due.text.trim()});
-  await store.save(); refresh();
-}
+class ReturnPage extends StatefulWidget{final Store store;const ReturnPage({required this.store,super.key});@override State<ReturnPage> createState()=>_ReturnPageState();}
+class _ReturnPageState extends State<ReturnPage>{@override Widget build(BuildContext c)=>Scaffold(appBar:AppBar(title:const Text('Return Inventory',style:TextStyle(fontWeight:FontWeight.w900))),body:widget.store.issued.isEmpty?const Padding(padding:EdgeInsets.all(18),child:EmptyCard(title:'Nothing to return',sub:'Issued entries will appear here for return.')):ListView.builder(padding:const EdgeInsets.all(18),itemCount:widget.store.issued.length,itemBuilder:(c,i){final e=widget.store.issued[widget.store.issued.length-1-i];return Container(margin:const EdgeInsets.only(bottom:10),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:line)),child:ListTile(leading:CircleAvatar(backgroundColor:soft,child:const Icon(Icons.keyboard_return,color:primary)),title:Text('${e['customerName']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark)),subtitle:Text('${e['invoice']}  •  ${e['date']}'),trailing:FilledButton.tonal(onPressed:()=>returnForm(c,widget.store,e),child:const Text('Return'))));}));}}
 
-Future<void> returnRental(BuildContext context, Store store, Map<String, dynamic> r, VoidCallback refresh) async {
-  final pending = asInt(r['qty']) - asInt(r['received']);
-  final controller = TextEditingController(text: '$pending');
-  final ok = await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: const Text('Return Item'), content: TextField(controller: controller, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Quantity returned (max $pending)')), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Confirm Return'))]));
-  if (ok != true) return;
-  final n = asInt(controller.text);
-  if (n <= 0 || n > pending) { if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid return quantity.'))); return; }
-  r['received'] = asInt(r['received']) + n; await store.save(); refresh();
-}
+class ReportsPage extends StatelessWidget{final Store store;const ReportsPage({required this.store,super.key});@override Widget build(BuildContext c){final issued=store.issued.length;final returned=store.returns.length;final qty=store.issued.fold<int>(0,(n,e)=>n+(e['items'] as List).fold<int>(0,(a,x)=>a+asInt(x['qty'])));final amount=store.returns.fold<double>(0,(n,e)=>n+asDouble(e['amount']));return Scaffold(appBar:AppBar(title:const Text('Reports',style:TextStyle(fontWeight:FontWeight.w900))),body:ListView(padding:const EdgeInsets.all(18),children:[Row(children:[Stat('Issued','$issued',Icons.assignment_outlined),const SizedBox(width:10),Stat('Returned','$returned',Icons.keyboard_return)]),const SizedBox(height:10),Row(children:[Stat('Issued Qty','$qty',Icons.inventory_2_outlined),const SizedBox(width:10),Stat('Return Amount',money(amount),Icons.currency_rupee)]),const SizedBox(height:24),Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:line)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Report',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:8),Text('Shop: ${store.shop['name']}',style:const TextStyle(fontWeight:FontWeight.w700)),Text('Address: ${store.shop['address']}',style:const TextStyle(color:Colors.black54)),const SizedBox(height:18),FilledButton.icon(onPressed:()=>saveReportPdf(c,store),icon:const Icon(Icons.picture_as_pdf_outlined),label:const Text('Save PDF'),style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(52)))]) )]));}}
 
-Future<bool> confirmDelete(BuildContext context, String title, String message) async => await showDialog<bool>(context: context, builder: (c) => AlertDialog(title: Text(title), content: Text(message), actions: [TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Delete'))])) ?? false;
+class SettingsPage extends StatelessWidget{final Store store;const SettingsPage({required this.store,super.key});@override Widget build(BuildContext c)=>SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(18,22,18,28),children:[const Text('Settings',style:TextStyle(fontSize:30,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:20),if(store.registered)InkWell(onTap:()=>shopManager(c,store),borderRadius:BorderRadius.circular(22),child:Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:dark,borderRadius:BorderRadius.circular(22)),child:Row(children:[const CircleAvatar(radius:28,backgroundColor:soft,child:Icon(Icons.storefront,color:primary)),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${store.shop['name']}',style:const TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.w900)),Text('${store.shop['owner']}',style:const TextStyle(color:Colors.white70)),Text('${store.shop['address']}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:Colors.white60))])),const Icon(Icons.chevron_right,color:Colors.white)]))),if(!store.registered)FilledButton.icon(onPressed:()=>shopForm(c,store),icon:const Icon(Icons.storefront),label:const Text('Register Your Shop'),style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(54))),const SizedBox(height:24),const Text('App',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900,color:Colors.black54)),const SizedBox(height:10),Card(color:Colors.white,elevation:0,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(20),side:const BorderSide(color:line)),child:Column(children:[ListTile(leading:const Icon(Icons.download_for_offline_outlined,color:primary),title:const Text('Check for App Update',style:TextStyle(fontWeight:FontWeight.w800)),subtitle:Text('Current version $version'),onTap:()=>launchUrl(Uri.parse(website),mode:LaunchMode.externalApplication)),ListTile(leading:const Icon(Icons.public,color:primary),title:const Text('PaliaAPK HUB Website'),onTap:()=>launchUrl(Uri.parse(website),mode:LaunchMode.externalApplication))])),const SizedBox(height:20),const Text('About',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900,color:Colors.black54)),const SizedBox(height:10),Card(color:Colors.white,elevation:0,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(20),side:const BorderSide(color:line)),child:const ListTile(contentPadding:EdgeInsets.all(18),leading:Icon(Icons.info_outline,color:primary,size:30),title:Text('RentFlow',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900)),subtitle:Text('By PaliaAPK HUB\nDeveloper by shanpalia'))))]));}
 
-Future<void> checkUpdate(BuildContext context) async {
-  showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 16), Text('Checking...')])));
-  try {
-    final response = await http.get(Uri.parse(updateUrl)).timeout(const Duration(seconds: 8));
-    if (!context.mounted) return;
-    Navigator.pop(context);
-    if (response.statusCode != 200) throw Exception();
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final latest = '${data['version'] ?? version}';
-    showDialog<void>(context: context, builder: (c) => AlertDialog(title: Text(latest == version ? 'You are up to date' : 'Update available'), content: Text(latest == version ? 'RentFlow $version is the latest version.' : 'Version $latest is available.'), actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close')), if (latest != version) FilledButton(onPressed: () => launchUrl(Uri.parse('${data['url'] ?? website}'), mode: LaunchMode.externalApplication), child: const Text('Update'))]));
-  } catch (_) { if (context.mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not check for updates.'))); } }
-}
+Future<void> shopForm(BuildContext context,Store store,{int? index}) async {final old=index==null?null:store.shops[index];final n=TextEditingController(text:'${old?['name']??''}');final o=TextEditingController(text:'${old?['owner']??''}');final p=TextEditingController(text:'${old?['phone']??''}');final a=TextEditingController(text:'${old?['address']??''}');await showModalBottomSheet(context:context,isScrollControlled:true,backgroundColor:bg,builder:(c)=>Padding(padding:EdgeInsets.only(left:20,right:20,top:20,bottom:MediaQuery.viewInsetsOf(c).bottom+20),child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text(index==null?'Register Your Shop':'Edit Shop',style:const TextStyle(fontSize:28,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:18),TextField(controller:n,decoration:const InputDecoration(labelText:'Shop name *',prefixIcon:Icon(Icons.store))),const SizedBox(height:12),TextField(controller:o,decoration:const InputDecoration(labelText:'Owner name *',prefixIcon:Icon(Icons.person))),const SizedBox(height:12),TextField(controller:p,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'Mobile number',prefixIcon:Icon(Icons.phone))),const SizedBox(height:12),TextField(controller:a,maxLines:3,decoration:const InputDecoration(labelText:'Shop address',prefixIcon:Icon(Icons.location_on))),const SizedBox(height:20),FilledButton(onPressed:()async{if(n.text.trim().isEmpty||o.text.trim().isEmpty)return;if(index==null)await store.addShop(name:n.text.trim(),owner:o.text.trim(),phone:p.text.trim(),address:a.text.trim());else await store.updateShop(index,{'name':n.text.trim(),'owner':o.text.trim(),'phone':p.text.trim(),'address':a.text.trim()});if(c.mounted)Navigator.pop(c);},style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(52)),child:Text(index==null?'Register Shop':'Save Changes'))]))));}
 
-Future<void> customerReport(BuildContext context, Store store, String customer) async {
-  final rows = store.rentals.where((r) => '${r['customer']}' == customer).toList();
-  await showDialog<void>(context: context, builder: (c) => AlertDialog(title: Text(customer), content: SizedBox(width: 360, child: rows.isEmpty ? const Text('No rental history.') : ListView(shrinkWrap: true, children: rows.map((r) => ListTile(title: Text('${r['item']} • Qty ${r['qty']}'), subtitle: Text('${r['date']} • ${r['received']}/${r['qty']} returned'), trailing: Text(money(r['amount'])))).toList())), actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))]));
-}
+Future<void> shopManager(BuildContext context,Store store)async{await Navigator.push(context,MaterialPageRoute(builder:(_)=>ShopManager(store:store)));}
+class ShopManager extends StatelessWidget{final Store store;const ShopManager({required this.store,super.key});@override Widget build(BuildContext c)=>AnimatedBuilder(animation:store,builder:(_,__)=>Scaffold(appBar:AppBar(title:const Text('Shop Management',style:TextStyle(fontWeight:FontWeight.w900)),actions:[IconButton(onPressed:()=>shopForm(c,store),icon:const Icon(Icons.add_business_outlined))]),body:ListView(padding:const EdgeInsets.all(18),children:[...List.generate(store.shops.length,(i){final s=store.shops[i];return Container(margin:const EdgeInsets.only(bottom:12),padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:i==store.active?primary:line,width:i==store.active?1.5:1)),child:Row(children:[CircleAvatar(backgroundColor:soft,child:const Icon(Icons.storefront,color:primary)),const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${s['name']}',style:const TextStyle(fontWeight:FontWeight.w900,color:dark,fontSize:17)),Text('${s['owner']}  •  ${s['phone']}',style:const TextStyle(color:Colors.black54)),Text('${s['address']}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:Colors.black54))])),PopupMenuButton<String>(onSelected:(v)async{if(v=='select')await store.selectShop(i);if(v=='edit')await shopForm(c,store,index:i);if(v=='delete'){final ok=await showDialog<bool>(context:c,builder:(d)=>AlertDialog(title:const Text('Delete shop?'),content:Text('Delete ${s['name']}? Its local shop data will also be removed.'),actions:[TextButton(onPressed:()=>Navigator.pop(d,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(d,true),child:const Text('Delete'))]));if(ok==true)await store.deleteShop(i);}},itemBuilder:(_)=>const[PopupMenuItem(value:'select',child:Text('Use this shop')),PopupMenuItem(value:'edit',child:Text('Edit shop')),PopupMenuItem(value:'delete',child:Text('Delete shop'))])]);}),const SizedBox(height:8),FilledButton.icon(onPressed:()=>shopForm(c,store),icon:const Icon(Icons.add_business),label:const Text('Add New Shop'),style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(52))) ])));}
+
+Future<void> itemForm(BuildContext context,Store store,{Map<String,dynamic>? existing})async{final n=TextEditingController(text:'${existing?['name']??''}');final q=TextEditingController(text:'${existing?['qty']??''}');final r=TextEditingController(text:'${existing?['rent']??''}');await showModalBottomSheet(context:context,isScrollControlled:true,backgroundColor:bg,builder:(c)=>Padding(padding:EdgeInsets.only(left:20,right:20,top:20,bottom:MediaQuery.viewInsetsOf(c).bottom+20),child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text(existing==null?'Add Item':'Edit Item',style:const TextStyle(fontSize:28,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:18),TextField(controller:n,decoration:const InputDecoration(labelText:'Item name',prefixIcon:Icon(Icons.inventory_2_outlined))),const SizedBox(height:12),TextField(controller:q,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Total quantity')),const SizedBox(height:12),TextField(controller:r,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Rent per day')),const SizedBox(height:20),FilledButton(onPressed:()async{if(n.text.trim().isEmpty)return;final data={'id':existing?['id']??id(),'serial':existing?['serial']??store.items.length+1:store.items.length+1,'name':n.text.trim(),'qty':asInt(q.text),'rent':asDouble(r.text),'issued':existing?['issued']??0:0};final list=store.shop['items'] as List;if(existing==null)list.add(data);else{final i=list.indexWhere((e)=>(e as Map)['id']==existing['id']);if(i>=0)list[i]=data;}await store.saveData();if(c.mounted)Navigator.pop(c);},style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(52)),child:Text(existing==null?'Save Item':'Save Changes'))]))));}
+Future<void> addStock(BuildContext c,Store store,Map<String,dynamic> item)async{final q=TextEditingController();await showDialog(context:c,builder:(d)=>AlertDialog(title:Text('Add more ${item['name']}'),content:TextField(controller:q,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Quantity to add')),actions:[TextButton(onPressed:()=>Navigator.pop(d),child:const Text('Cancel')),FilledButton(onPressed:(){item['qty']=asInt(item['qty'])+asInt(q.text);store.saveData();Navigator.pop(d);},child:const Text('Add'))]));}
+Future<void> customerForm(BuildContext context,Store store,{Map<String,dynamic>? existing})async{final n=TextEditingController(text:'${existing?['name']??''}');final m=TextEditingController(text:'${existing?['mobile']??''}');final a=TextEditingController(text:'${existing?['address']??''}');await showModalBottomSheet(context:context,isScrollControlled:true,backgroundColor:bg,builder:(c)=>Padding(padding:EdgeInsets.only(left:20,right:20,top:20,bottom:MediaQuery.viewInsetsOf(c).bottom+20),child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text(existing==null?'Add Customer':'Edit Customer',style:const TextStyle(fontSize:28,fontWeight:FontWeight.w900,color:dark)),const SizedBox(height:18),TextField(controller:n,decoration:const InputDecoration(labelText:'Customer name *',prefixIcon:Icon(Icons.person_outline))),const SizedBox(height:12),TextField(controller:m,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'Mobile number',prefixIcon:Icon(Icons.phone_outlined))),const SizedBox(height:12),TextField(controller:a,maxLines:2,decoration:const InputDecoration(labelText:'Address',prefixIcon:Icon(Icons.location_on_outlined))),const SizedBox(height:20),FilledButton(onPressed:()async{if(n.text.trim().isEmpty)return;final data={'id':existing?['id']??id(),'name':n.text.trim(),'mobile':m.text.trim(),'address':a.text.trim()};final list=store.shop['customers'] as List;if(existing==null)list.add(data);else{final i=list.indexWhere((e)=>(e as Map)['id']==existing['id']);if(i>=0)list[i]=data;}await store.saveData();if(c.mounted)Navigator.pop(c);},style:FilledButton.styleFrom(backgroundColor:primary,minimumSize:const Size.fromHeight(52)),child:Text(existing==null?'Save Customer':'Save Changes'))]))));}
+
+Future<void> issueForm(BuildContext context,Store store)async{if(store.items.isEmpty||store.customers.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Add at least one item and one customer first.')));return;}final rows=<Map<String,dynamic>>[{'itemId':store.items.first['id'],'qty':1,'days':1}];String customerId='${store.customers.first['id']}';final invoice='RF-${DateTime.now().millisecondsSinceEpoch}';await showDialog(context:context,builder:(dialog)=>StatefulBuilder(builder:(c,set){return AlertDialog(title:const Text('Issue Inventory'),content:SizedBox(width:500,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text('Invoice $invoice',style:const TextStyle(color:primary,fontWeight:FontWeight.w800)),const SizedBox(height:12),DropdownButtonFormField<String>(initialValue:customerId,decoration:const InputDecoration(labelText:'Customer'),items:store.customers.map((x)=>DropdownMenuItem(value:'${x['id']}',child:Text('${x['name']}'))).toList(),onChanged:(v){if(v!=null)set(()=>customerId=v);}),const SizedBox(height:14),...List.generate(rows.length,(i){final row=rows[i];return Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:bg,borderRadius:BorderRadius.circular(16),border:Border.all(color:line)),child:Column(children:[Row(children:[Expanded(child:DropdownButtonFormField<String>(initialValue:'${row['itemId']}',decoration:const InputDecoration(labelText:'Inventory'),items:store.items.map((x)=>DropdownMenuItem(value:'${x['id']}',child:Text('${x['serial']}. ${x['name']}'))).toList(),onChanged:(v){if(v!=null)set(()=>row['itemId']=v);})),IconButton(onPressed:rows.length==1?null:(){set(()=>rows.removeAt(i));},icon:const Icon(Icons.delete_outline))]),Row(children:[Expanded(child:TextFormField(initialValue:'${row['qty']}',keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Issued quantity'),onChanged:(v)=>row['qty']=asInt(v))),const SizedBox(width:10),Expanded(child:TextFormField(initialValue:'${row['days']}',keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Rent days'),onChanged:(v)=>row['days']=asInt(v)))]) ]));}),OutlinedButton.icon(onPressed:()=>set(()=>rows.add({'itemId':store.items.first['id'],'qty':1,'days':1}),icon:const Icon(Icons.add,color:primary),label:const Text('Add More Inventory')),const SizedBox(height:4),Text('Date: ${today()}',style:const TextStyle(color:Colors.black54))])),),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),FilledButton(onPressed:()async{final customer=store.customers.firstWhere((x)=>'${x['id']}'==customerId);final items=rows.map((r){final item=store.items.firstWhere((x)=>'${x['id']}'=='${r['itemId']}');return {'itemId':item['id'],'name':item['name'],'serial':item['serial'],'qty':asInt(r['qty']),'days':asInt(r['days']),'rent':asDouble(item['rent'])};}).toList();for(final x in items){final item=store.items.firstWhere((z)=>'${z['id']}'=='${x['itemId']}');item['issued']=asInt(item['issued'])+asInt(x['qty']);}final entry={'invoice':invoice,'date':today(),'customerId':customer['id'],'customerName':customer['name'],'mobile':customer['mobile'],'address':customer['address'],'items':items,'closed':false};(store.shop['issued'] as List).add(entry);await store.saveData();if(c.mounted)Navigator.pop(c);await showIssuePreview(context,store,entry);},child:const Text('Save & Preview'))]));});}
+
+Future<void> returnForm(BuildContext context,Store store,Map<String,dynamic> issue)async{final rows=(issue['items'] as List).map((x)=>{'itemId':x['itemId'],'name':x['name'],'issued':asInt(x['qty']),'returned':0}).toList();final amount=TextEditingController();final note=TextEditingController();await showDialog(context:context,builder:(dialog)=>StatefulBuilder(builder:(c,set)=>AlertDialog(title:const Text('Return Inventory'),content:SizedBox(width:500,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[Text('${issue['invoice']} • ${issue['customerName']}',style:const TextStyle(fontWeight:FontWeight.w800,color:dark)),const SizedBox(height:12),...List.generate(rows.length,(i){final r=rows[i];return Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:bg,borderRadius:BorderRadius.circular(16)),child:Row(children:[Expanded(child:Text('${r['name']}\nIssued: ${r['issued']}',style:const TextStyle(fontWeight:FontWeight.w700))),SizedBox(width:110,child:TextFormField(initialValue:'0',keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Returned'),onChanged:(v)=>r['returned']=asInt(v))) ]));}),TextField(controller:amount,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Manual amount')),const SizedBox(height:10),TextField(controller:note,maxLines:2,decoration:const InputDecoration(labelText:'Note')),])),),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),FilledButton(onPressed:()async{for(final r in rows){final item=store.items.firstWhere((x)=>'${x['id']}'=='${r['itemId']}');item['issued']=(asInt(item['issued'])-asInt(r['returned'])).clamp(0,999999);}issue['closed']=rows.every((r)=>asInt(r['returned'])>=asInt(r['issued']));(store.shop['returns'] as List).add({'id':id(),'invoice':issue['invoice'],'date':today(),'customerName':issue['customerName'],'items':rows,'amount':asDouble(amount.text),'note':note.text.trim()});await store.saveData();if(c.mounted)Navigator.pop(c);},child:const Text('Save Return'))])));}
+
+Future<void> showIssuePreview(BuildContext context,Store store,Map<String,dynamic> e)async{final s=store.shop;await showDialog(context:context,builder:(c)=>AlertDialog(title:const Text('Invoice Preview'),content:SizedBox(width:520,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${s['name']}',style:const TextStyle(fontSize:22,fontWeight:FontWeight.w900,color:dark)),const Text('RentFlow • By PaliaAPK HUB',style:TextStyle(color:primary,fontWeight:FontWeight.w800)),const Divider(height:24),Text('Invoice: ${e['invoice']}'),Text('Issued Date: ${e['date']}'),const SizedBox(height:10),Text('Party: ${e['customerName']}'),Text('Mobile: ${e['mobile']}'),Text('Address: ${e['address']}'),const SizedBox(height:14),...((e['items'] as List).asMap().entries.map((z){final x=z.value;return Padding(padding:const EdgeInsets.only(bottom:7),child:Text('${z.key+1}. ${x['name']}  •  Qty ${x['qty']}  •  Rent Days ${x['days']}'));})),const SizedBox(height:8),const Text('Amount is handled manually on Return.',style:TextStyle(color:Colors.black54))])),),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Close')),FilledButton.icon(onPressed:()=>saveIssuePdf(s,e),icon:const Icon(Icons.picture_as_pdf_outlined),label:const Text('Save PDF'))]));}
+
+Future<void> saveIssuePdf(Map<String,dynamic> s,Map<String,dynamic> e)async{final doc=pw.Document();doc.addPage(pw.Page(pageFormat:pw.PdfPageFormat.a4,build:(ctx)=>pw.Padding(padding:const pw.EdgeInsets.all(28),child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[pw.Text('${s['name']}',style:pw.TextStyle(fontSize:22,fontWeight:pw.FontWeight.bold)),pw.Text('RentFlow • By PaliaAPK HUB'),pw.Divider(),pw.Text('Invoice: ${e['invoice']}'),pw.Text('Issued Date: ${e['date']}'),pw.SizedBox(height:10),pw.Text('Party: ${e['customerName']}'),pw.Text('Mobile: ${e['mobile']}'),pw.Text('Address: ${e['address']}'),pw.SizedBox(height:18),pw.Table.fromTextArray(headers:['Srl','Inventory','Issued Qty','Rent Days'],data:[...(e['items'] as List).asMap().entries.map((x)=>['${x.key+1}','${x.value['name']}','${x.value['qty']}','${x.value['days']}'])]),pw.Spacer(),pw.Text('RentFlow',style:pw.TextStyle(fontWeight:pw.FontWeight.bold)),pw.Text('By PaliaAPK HUB • Developer by shanpalia')])));await Printing.sharePdf(bytes:await doc.save(),filename:'${e['invoice']}.pdf');}
+
+Future<void> saveReportPdf(BuildContext context,Store store)async{final doc=pw.Document();doc.addPage(pw.Page(pageFormat:pw.PdfPageFormat.a4,build:(ctx)=>pw.Padding(padding:const pw.EdgeInsets.all(28),child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[pw.Text('${store.shop['name']}',style:pw.TextStyle(fontSize:22,fontWeight:pw.FontWeight.bold)),pw.Text('RentFlow • By PaliaAPK HUB'),pw.Divider(),pw.Text('Issued entries: ${store.issued.length}'),pw.Text('Returned entries: ${store.returns.length}'),pw.Text('Items: ${store.items.length}'),pw.Text('Customers: ${store.customers.length}'),pw.SizedBox(height:20),pw.Text('Return amount: ${money(store.returns.fold<double>(0,(n,e)=>n+asDouble(e['amount'])))}'),pw.Spacer(),pw.Text('Developer by shanpalia')] )));await Printing.sharePdf(bytes:await doc.save(),filename:'RentFlow_Report.pdf');}
