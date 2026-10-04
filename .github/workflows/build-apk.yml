@@ -38,6 +38,11 @@ jobs:
           if old_nav not in s:
               raise SystemExit('Expected navigation destination was not found')
           s = s.replace(old_nav, new_nav, 1)
+
+          old_top_settings = """IconButton(onPressed: onSettings, icon: const Icon(Icons.settings_rounded))"""
+          if old_top_settings not in s:
+              raise SystemExit('Expected Home Settings button was not found')
+          s = s.replace(', ' + old_top_settings, '', 1)
           p.write_text(s)
 
       - name: Apply RentFlow branding, launcher icon and native splash
