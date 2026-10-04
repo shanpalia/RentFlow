@@ -256,7 +256,7 @@ class Home extends StatelessWidget {
           SliverPadding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 0), sliver: SliverToBoxAdapter(child: Row(children: [Expanded(child: StatCard('Issued', '$issued', Icons.north_east_rounded)), const SizedBox(width: 10), Expanded(child: StatCard('Items Due', '$due', Icons.schedule_rounded))]))),
           SliverPadding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 0), sliver: SliverToBoxAdapter(child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(58), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17))), onPressed: () => rentalForm(context, db, refresh), icon: const Icon(Icons.add_rounded), label: const Text('New Rental', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))))),
           SliverPadding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), sliver: SliverToBoxAdapter(child: Row(children: [QuickAction('Add Item', Icons.inventory_2_outlined, () => itemForm(context, db, refresh)), QuickAction('Customer', Icons.person_add_alt_1_rounded, () => customerForm(context, db, refresh)), QuickAction('Invoice', Icons.receipt_long_outlined, () => invoiceList(context, db)), QuickAction('Receive', Icons.undo_rounded, () => receiveForm(context, db, refresh))]))),
-          SliverPadding(padding: const EdgeInsets.fromLTRB(20, 24, 20, 10), sliver: SliverToBoxAdapter(child: Row(children: [const Expanded(child: Text('Recent Rentals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),), TextButton(onPressed: () => selectTab(3), child: const Text('View all'))]))),
+          SliverPadding(padding: const EdgeInsets.fromLTRB(20, 24, 20, 10), sliver: SliverToBoxAdapter(child: Row(children: [const Expanded(child: Text('Recent Rentals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), TextButton(onPressed: () => selectTab(3), child: const Text('View all'))]))),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
             sliver: SliverList.builder(
@@ -280,7 +280,17 @@ class StatCard extends StatelessWidget {
   const StatCard(this.title, this.value, this.icon, {super.key});
   @override
   Widget build(BuildContext context) {
-    return Container(height: 112, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE4ECE8))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: primary), const Spacer(), Text(title, style: const TextStyle(color: muted, fontSize: 13)), Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: ink))]);
+    return Container(
+      height: 112,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE4ECE8))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: primary),
+        const Spacer(),
+        Text(title, style: const TextStyle(color: muted, fontSize: 13)),
+        Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: ink)),
+      ]),
+    );
   }
 }
 
@@ -303,16 +313,26 @@ class PageFrame extends StatelessWidget {
   const PageFrame({required this.title, required this.subtitle, required this.children, this.action, super.key});
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Column(children: [Padding(padding: const EdgeInsets.fromLTRB(20, 18, 14, 14), child: Row(children: [const Brand(size: 46), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)), Text(subtitle, style: const TextStyle(color: muted))])), if (action != null) action!]),), Expanded(child: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 28), children: children))]));
+    return SafeArea(child: Column(children: [
+      Padding(padding: const EdgeInsets.fromLTRB(20, 18, 14, 14), child: Row(children: [const Brand(size: 46), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)), Text(subtitle, style: const TextStyle(color: muted))])), if (action != null) action!])),
+      Expanded(child: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 28), children: children)),
+    ]));
   }
+}
+
+class EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const EmptyState({required this.icon, required this.text, super.key});
+  @override
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 60), child: Column(children: [Icon(icon, size: 56, color: primary), const SizedBox(height: 12), Text(text, style: const TextStyle(color: muted, fontWeight: FontWeight.w700))]));
 }
 
 class ItemsPage extends StatefulWidget {
   final DB db;
   final VoidCallback refresh;
   const ItemsPage({required this.db, required this.refresh, super.key});
-  @override
-  State<ItemsPage> createState() => _ItemsPageState();
+  @override State<ItemsPage> createState() => _ItemsPageState();
 }
 class _ItemsPageState extends State<ItemsPage> {
   String q = '';
@@ -332,8 +352,7 @@ class CustomersPage extends StatefulWidget {
   final DB db;
   final VoidCallback refresh;
   const CustomersPage({required this.db, required this.refresh, super.key});
-  @override
-  State<CustomersPage> createState() => _CustomersPageState();
+  @override State<CustomersPage> createState() => _CustomersPageState();
 }
 class _CustomersPageState extends State<CustomersPage> {
   String q = '';
@@ -352,8 +371,7 @@ class _CustomersPageState extends State<CustomersPage> {
 class ReportsPage extends StatefulWidget {
   final DB db;
   const ReportsPage({required this.db, super.key});
-  @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  @override State<ReportsPage> createState() => _ReportsPageState();
 }
 class _ReportsPageState extends State<ReportsPage> {
   String q = '';
@@ -364,17 +382,18 @@ class _ReportsPageState extends State<ReportsPage> {
       TextField(onChanged: (v) => setState(() => q = v), decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'Search customer or item')),
       const SizedBox(height: 14),
       if (rows.isEmpty) const EmptyState(icon: Icons.analytics_outlined, text: 'No rental transactions yet'),
-      if (rows.isNotEmpty) Card(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: DataTable(columns: const [DataColumn(label: Text('Date')), DataColumn(label: Text('Customer')), DataColumn(label: Text('Item')), DataColumn(label: Text('Issued')), DataColumn(label: Text('Received')), DataColumn(label: Text('Days')), DataColumn(label: Text('Rate')), DataColumn(label: Text('Amount')), DataColumn(label: Text('Due'))], rows: rows.map((r) => DataRow(cells: [DataCell(Text('${r['date']}')), DataCell(Text('${r['customer']}')), DataCell(Text('${r['item']}')), DataCell(Text('${r['qty']}')), DataCell(Text('${r['received']}')), DataCell(Text('${r['days']}')), DataCell(Text('₹${money(r['rate'])}')), DataCell(Text('₹${money(r['amount'])}')), DataCell(Text('${asInt(r['qty']) - asInt(r['received'])}'))])).toList()))),
+      if (rows.isNotEmpty)
+        Card(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [DataColumn(label: Text('Date')), DataColumn(label: Text('Customer')), DataColumn(label: Text('Item')), DataColumn(label: Text('Issued')), DataColumn(label: Text('Received')), DataColumn(label: Text('Days')), DataColumn(label: Text('Rate')), DataColumn(label: Text('Amount')), DataColumn(label: Text('Due'))],
+              rows: rows.map((r) => DataRow(cells: [DataCell(Text('${r['date']}')), DataCell(Text('${r['customer']}')), DataCell(Text('${r['item']}')), DataCell(Text('${r['qty']}')), DataCell(Text('${r['received']}')), DataCell(Text('${r['days']}')), DataCell(Text('₹${money(r['rate'])}')), DataCell(Text('₹${money(r['amount'])}')), DataCell(Text('${asInt(r['qty']) - asInt(r['received'])}'))])).toList(),
+            ),
+          ),
+        ),
     ]);
   }
-}
-
-class EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const EmptyState({required this.icon, required this.text, super.key});
-  @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 60), child: Column(children: [Icon(icon, size: 56, color: primary), const SizedBox(height: 12), Text(text, style: const TextStyle(color: muted, fontWeight: FontWeight.w700))]));
 }
 
 Future<void> itemForm(BuildContext context, DB db, VoidCallback refresh) async {
@@ -383,7 +402,28 @@ Future<void> itemForm(BuildContext context, DB db, VoidCallback refresh) async {
   final qty = TextEditingController(text: '1');
   final rate = TextEditingController(text: '0');
   String type = 'Day';
-  final ok = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, setState) => AlertDialog(title: const Text('Add Item'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Item name')), const SizedBox(height: 10), TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')), const SizedBox(height: 10), TextField(controller: qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')), const SizedBox(height: 10), TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Rent price')), const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: type, items: const [DropdownMenuItem(value: 'Day', child: Text('Per Day')), DropdownMenuItem(value: 'Hour', child: Text('Per Hour')), DropdownMenuItem(value: 'Event', child: Text('Per Event'))], onChanged: (v) => setState(() => type = v ?? 'Day'), decoration: const InputDecoration(labelText: 'Rate type'))])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))])));
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(builder: (context, setState) {
+        return AlertDialog(
+          title: const Text('Add Item'),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'Item name')),
+            const SizedBox(height: 10),
+            TextField(controller: category, decoration: const InputDecoration(labelText: 'Category')),
+            const SizedBox(height: 10),
+            TextField(controller: qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')),
+            const SizedBox(height: 10),
+            TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Rent price')),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(initialValue: type, items: const [DropdownMenuItem(value: 'Day', child: Text('Per Day')), DropdownMenuItem(value: 'Hour', child: Text('Per Hour')), DropdownMenuItem(value: 'Event', child: Text('Per Event'))], onChanged: (v) => setState(() => type = v ?? 'Day'), decoration: const InputDecoration(labelText: 'Rate type')),
+          ])),
+          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))],
+        );
+      });
+    },
+  );
   if (ok != true || name.text.trim().isEmpty) return;
   final count = asInt(qty.text);
   db.items.add({'name': name.text.trim(), 'category': category.text.trim(), 'qty': count, 'available': count, 'rate': asDouble(rate.text), 'type': type});
@@ -395,7 +435,20 @@ Future<void> customerForm(BuildContext context, DB db, VoidCallback refresh) asy
   final name = TextEditingController();
   final mobile = TextEditingController();
   final address = TextEditingController();
-  final ok = await showDialog<bool>(context: context, builder: (context) => AlertDialog(title: const Text('Add Customer'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: name, decoration: const InputDecoration(labelText: 'Customer name')), const SizedBox(height: 10), TextField(controller: mobile, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile number')), const SizedBox(height: 10), TextField(controller: address, decoration: const InputDecoration(labelText: 'Address'))])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))]));
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Add Customer'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: name, decoration: const InputDecoration(labelText: 'Customer name')),
+        const SizedBox(height: 10),
+        TextField(controller: mobile, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile number')),
+        const SizedBox(height: 10),
+        TextField(controller: address, decoration: const InputDecoration(labelText: 'Address')),
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))],
+    ),
+  );
   if (ok != true || name.text.trim().isEmpty) return;
   db.customers.add({'name': name.text.trim(), 'mobile': mobile.text.trim(), 'address': address.text.trim()});
   await db.save();
@@ -407,20 +460,63 @@ Future<void> rentalForm(BuildContext context, DB db, VoidCallback refresh) async
     await showDialog<void>(context: context, builder: (context) => AlertDialog(title: const Text('Add details first'), content: const Text('Please add at least one item and one customer before creating a rental.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
     return;
   }
-  String customer = db.customers.first['name'] as String;
-  String item = db.items.first['name'] as String;
+  String customer = '${db.customers.first['name']}';
+  String item = '${db.items.first['name']}';
   final qty = TextEditingController(text: '1');
   final days = TextEditingController(text: '1');
   final rate = TextEditingController(text: money(db.items.first['rate']));
   final amount = TextEditingController();
-  void syncAmount() { amount.text = money(asInt(qty.text) * asInt(days.text) * asDouble(rate.text)); }
+
+  void syncAmount() {
+    amount.text = money(asInt(qty.text) * asInt(days.text) * asDouble(rate.text));
+  }
   syncAmount();
-  final ok = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, setState) {
-    final selected = db.items.firstWhere((x) => x['name'] == item, orElse: () => db.items.first);
-    return AlertDialog(title: const Text('New Rental'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButtonFormField<String>(initialValue: customer, items: db.customers.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(), onChanged: (v) => setState(() => customer = v ?? customer), decoration: const InputDecoration(labelText: 'Customer')), const SizedBox(height: 10), DropdownButtonFormField<String>(initialValue: item, items: db.items.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(), onChanged: (v) { item = v ?? item; rate.text = money(selected['rate']); syncAmount(); setState(() {}); }, decoration: const InputDecoration(labelText: 'Item')), const SizedBox(height: 10), TextField(controller: qty, keyboardType: TextInputType.number, onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Quantity')), const SizedBox(height: 10), TextField(controller: days, keyboardType: TextInputType.number, onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Days')), const SizedBox(height: 10), TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Rate (editable)')), const SizedBox(height: 10), TextField(controller: amount, readOnly: true, decoration: const InputDecoration(labelText: 'Amount'))])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))]);
-  }));
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(builder: (context, setState) {
+        return AlertDialog(
+          title: const Text('New Rental'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButtonFormField<String>(
+                initialValue: customer,
+                items: db.customers.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(),
+                onChanged: (v) => setState(() => customer = v ?? customer),
+                decoration: const InputDecoration(labelText: 'Customer'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: item,
+                items: db.items.map((x) => DropdownMenuItem(value: '${x['name']}', child: Text('${x['name']}'))).toList(),
+                onChanged: (v) {
+                  item = v ?? item;
+                  final selected = db.items.firstWhere((x) => '${x['name']}' == item);
+                  rate.text = money(selected['rate']);
+                  syncAmount();
+                  setState(() {});
+                },
+                decoration: const InputDecoration(labelText: 'Item'),
+              ),
+              const SizedBox(height: 10),
+              TextField(controller: qty, keyboardType: TextInputType.number, onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Quantity')),
+              const SizedBox(height: 10),
+              TextField(controller: days, keyboardType: TextInputType.number, onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Days')),
+              const SizedBox(height: 10),
+              TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: (_) => setState(syncAmount), decoration: const InputDecoration(labelText: 'Rate (editable)')),
+              const SizedBox(height: 10),
+              TextField(controller: amount, readOnly: true, decoration: const InputDecoration(labelText: 'Amount')),
+            ]),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))],
+        );
+      });
+    },
+  );
+
   if (ok != true) return;
-  final selected = db.items.firstWhere((x) => x['name'] == item);
+  final selected = db.items.firstWhere((x) => '${x['name']}' == item);
   final q = asInt(qty.text);
   final available = asInt(selected['available']);
   if (q <= 0 || q > available) {
@@ -441,13 +537,37 @@ Future<void> receiveForm(BuildContext context, DB db, VoidCallback refresh) asyn
   }
   Map<String, dynamic> rental = active.first;
   final received = TextEditingController(text: '${asInt(rental['qty']) - asInt(rental['received'])}');
-  final ok = await showDialog<bool>(context: context, builder: (context) => StatefulBuilder(builder: (context, setState) => AlertDialog(title: const Text('Receive Item'), content: Column(mainAxisSize: MainAxisSize.min, children: [DropdownButtonFormField<Map<String, dynamic>>(initialValue: rental, items: active.map((r) => DropdownMenuItem(value: r, child: Text('${r['customer']} • ${r['item']}'))).toList(), onChanged: (v) { rental = v ?? rental; received.text = '${asInt(rental['qty']) - asInt(rental['received'])}'; setState(() {}); }, decoration: const InputDecoration(labelText: 'Rental')), const SizedBox(height: 12), TextField(controller: received, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Received quantity'))])), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Receive'))])));
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(builder: (context, setState) {
+        return AlertDialog(
+          title: const Text('Receive Item'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<Map<String, dynamic>>(
+              initialValue: rental,
+              items: active.map((r) => DropdownMenuItem(value: r, child: Text('${r['customer']} • ${r['item']}'))).toList(),
+              onChanged: (v) {
+                rental = v ?? rental;
+                received.text = '${asInt(rental['qty']) - asInt(rental['received'])}';
+                setState(() {});
+              },
+              decoration: const InputDecoration(labelText: 'Rental'),
+            ),
+            const SizedBox(height: 12),
+            TextField(controller: received, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Received quantity')),
+          ]),
+          actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Receive'))],
+        );
+      });
+    },
+  );
   if (ok != true) return;
   final n = asInt(received.text);
   final remaining = asInt(rental['qty']) - asInt(rental['received']);
   if (n <= 0 || n > remaining) return;
   rental['received'] = asInt(rental['received']) + n;
-  final item = db.items.firstWhere((x) => x['name'] == rental['item'], orElse: () => {});
+  final item = db.items.firstWhere((x) => '${x['name']}' == '${rental['item']}', orElse: () => {});
   if (item.isNotEmpty) item['available'] = asInt(item['available']) + n;
   await db.save();
   refresh();
@@ -471,7 +591,18 @@ class CustomerReportPage extends StatelessWidget {
   const CustomerReportPage({required this.name, required this.rows, required this.issued, required this.received, required this.amount, super.key});
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text(name, style: const TextStyle(fontWeight: FontWeight.w900))), body: ListView(padding: const EdgeInsets.all(20), children: [Row(children: [Expanded(child: StatCard('Issued', '$issued', Icons.north_east_rounded)), const SizedBox(width: 10), Expanded(child: StatCard('Received', '$received', Icons.undo_rounded))]), const SizedBox(height: 10), Row(children: [Expanded(child: StatCard('Item Due', '${issued - received}', Icons.schedule_rounded)), const SizedBox(width: 10), Expanded(child: StatCard('Amount', '₹${money(amount)}', Icons.receipt_long_rounded))]), const SizedBox(height: 20), const Text('Rental History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 10), ...rows.map((r) => Card(child: ListTile(title: Text('${r['item']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${r['date']} • ${r['days']} day(s) • Issued ${r['qty']} • Received ${r['received']}'), trailing: Text('₹${money(r['amount'])}', style: const TextStyle(fontWeight: FontWeight.w900))))) ]));
+    return Scaffold(
+      appBar: AppBar(title: Text(name, style: const TextStyle(fontWeight: FontWeight.w900))),
+      body: ListView(padding: const EdgeInsets.all(20), children: [
+        Row(children: [Expanded(child: StatCard('Issued', '$issued', Icons.north_east_rounded)), const SizedBox(width: 10), Expanded(child: StatCard('Received', '$received', Icons.undo_rounded))]),
+        const SizedBox(height: 10),
+        Row(children: [Expanded(child: StatCard('Item Due', '${issued - received}', Icons.schedule_rounded)), const SizedBox(width: 10), Expanded(child: StatCard('Amount', '₹${money(amount)}', Icons.receipt_long_rounded))]),
+        const SizedBox(height: 20),
+        const Text('Rental History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        ...rows.map((r) => Card(child: ListTile(title: Text('${r['item']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${r['date']} • ${r['days']} day(s) • Issued ${r['qty']} • Received ${r['received']}'), trailing: Text('₹${money(r['amount'])}', style: const TextStyle(fontWeight: FontWeight.w900))))),
+      ],),
+    );
   }
 }
 
@@ -484,13 +615,41 @@ class InvoicePage extends StatelessWidget {
   const InvoicePage({required this.db, super.key});
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text('Invoices', style: TextStyle(fontWeight: FontWeight.w900))), body: ListView.builder(padding: const EdgeInsets.all(16), itemCount: db.rentals.length, itemBuilder: (context, index) { final r = db.rentals[db.rentals.length - 1 - index]; return Card(child: ListTile(title: Text('${r['customer']} • ${r['item']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${r['date']} • ₹${money(r['amount'])}'), trailing: IconButton(icon: const Icon(Icons.picture_as_pdf_rounded, color: primary), onPressed: () => createInvoicePdf(r)))); }));
+    return Scaffold(
+      appBar: AppBar(title: const Text('Invoices', style: TextStyle(fontWeight: FontWeight.w900))),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: db.rentals.length,
+        itemBuilder: (context, index) {
+          final r = db.rentals[db.rentals.length - 1 - index];
+          return Card(child: ListTile(title: Text('${r['customer']} • ${r['item']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('${r['date']} • ₹${money(r['amount'])}'), trailing: IconButton(icon: const Icon(Icons.picture_as_pdf_rounded, color: primary), onPressed: () => createInvoicePdf(r))));
+        },
+      ),
+    );
   }
 }
 
 Future<void> createInvoicePdf(Map<String, dynamic> r) async {
   final doc = pw.Document();
-  doc.addPage(pw.Page(build: (context) => pw.Padding(padding: const pw.EdgeInsets.all(28), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [pw.Text('RENTFLOW', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)), pw.SizedBox(height: 6), pw.Text('By PaliaAPK HUB'), pw.Text('Developer by ShanPalia'), pw.Divider(), pw.Text('Date: ${r['date']}'), pw.SizedBox(height: 8), pw.Text('Customer: ${r['customer']}'), pw.SizedBox(height: 18), pw.Table.fromTextArray(data: [['Item', 'Qty', 'Days', 'Rate', 'Amount'], ['${r['item']}', '${r['qty']}', '${r['days']}', '₹${money(r['rate'])}', '₹${money(r['amount'])}']]), pw.SizedBox(height: 18), pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('TOTAL: ₹${money(r['amount'])}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold))) ])));
+  doc.addPage(pw.Page(build: (context) {
+    return pw.Padding(padding: const pw.EdgeInsets.all(28), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+      pw.Text('RENTFLOW', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 6),
+      pw.Text('By PaliaAPK HUB'),
+      pw.Text('Developer by ShanPalia'),
+      pw.Divider(),
+      pw.Text('Date: ${r['date']}'),
+      pw.SizedBox(height: 8),
+      pw.Text('Customer: ${r['customer']}'),
+      pw.SizedBox(height: 18),
+      pw.Text('Item: ${r['item']}'),
+      pw.Text('Quantity: ${r['qty']}'),
+      pw.Text('Days: ${r['days']}'),
+      pw.Text('Rate: ₹${money(r['rate'])}'),
+      pw.SizedBox(height: 12),
+      pw.Text('TOTAL: ₹${money(r['amount'])}', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+    ]));
+  }));
   await Printing.sharePdf(bytes: await doc.save(), filename: 'RentFlow-Invoice.pdf');
 }
 
@@ -504,10 +663,28 @@ class SettingsPage extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w900))), body: ListView(padding: const EdgeInsets.all(20), children: [Card(color: mint, child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [const Brand(size: 64), const SizedBox(width: 16), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RentFlow', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)), Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)), Text('Developer by ShanPalia', style: TextStyle(color: muted))]))]))), const SizedBox(height: 14), Card(child: Column(children: [ListTile(leading: const Icon(Icons.system_update_alt_rounded, color: primary), title: const Text('App Update', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Check the PaliaAPK HUB website for the latest APK'), trailing: const Icon(Icons.open_in_new_rounded), onTap: () => openWebsite(context)), ListTile(leading: const Icon(Icons.language_rounded, color: primary), title: const Text('PaliaAPK HUB Website', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Open website'), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => openWebsite(context))])), const SizedBox(height: 18), const Center(child: Text('RentFlow 1.0.0', style: TextStyle(color: muted))), const SizedBox(height: 4), const Center(child: Text('Rental management made simple', style: TextStyle(color: muted))) ]));
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w900))),
+      body: ListView(padding: const EdgeInsets.all(20), children: [
+        Card(color: mint, child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [const Brand(size: 64), const SizedBox(width: 16), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RentFlow', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)), Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)), Text('Developer by ShanPalia', style: TextStyle(color: muted))]))]))),
+        const SizedBox(height: 14),
+        Card(child: Column(children: [
+          ListTile(leading: const Icon(Icons.system_update_alt_rounded, color: primary), title: const Text('App Update', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Check PaliaAPK HUB for the latest APK'), trailing: const Icon(Icons.open_in_new_rounded), onTap: () => openWebsite(context)),
+          ListTile(leading: const Icon(Icons.language_rounded, color: primary), title: const Text('PaliaAPK HUB Website', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Open website'), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => openWebsite(context)),
+        ])),
+        const SizedBox(height: 18),
+        const Center(child: Text('RentFlow 1.0.0', style: TextStyle(color: muted))),
+        const SizedBox(height: 4),
+        const Center(child: Text('Rental management made simple', style: TextStyle(color: muted))),
+      ]),
+    );
   }
 }
 
 void showAbout(BuildContext context) {
-  showDialog<void>(context: context, builder: (context) => AlertDialog(title: const Text('About RentFlow'), content: const Column(mainAxisSize: MainAxisSize.min, children: [Brand(size: 76), SizedBox(height: 14), Text('RentFlow', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Developer by ShanPalia', style: TextStyle(color: muted))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))]));
+  showDialog<void>(context: context, builder: (context) => AlertDialog(
+    title: const Text('About RentFlow'),
+    content: const Column(mainAxisSize: MainAxisSize.min, children: [Brand(size: 76), SizedBox(height: 14), Text('RentFlow', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)), SizedBox(height: 4), Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Developer by ShanPalia', style: TextStyle(color: muted))]),
+    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+  ));
 }
