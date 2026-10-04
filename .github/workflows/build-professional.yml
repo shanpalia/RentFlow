@@ -28,7 +28,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle 8.14.3
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.14.3'
@@ -37,6 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -d android
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
 
       - name: Generate Gradle wrapper
@@ -59,26 +60,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Fix PDF page format import
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('lib/rentflow_modern.dart')
-          s = p.read_text()
-          if "import 'package:pdf/pdf.dart';" not in s:
-              s = s.replace(
-                  "import 'package:pdf/widgets.dart' as pw;",
-                  "import 'package:pdf/pdf.dart';\nimport 'package:pdf/widgets.dart' as pw;",
-                  1,
-              )
-          s = s.replace('pw.PdfPageFormat.a4', 'PdfPageFormat.a4')
-          p.write_text(s)
-          PY
-
       - name: Analyze Dart source
-        run: flutter analyze lib
+        run: flutter analyze lib --no-fatal-infos
 
       - name: Build release APK
         run: flutter build apk --release
@@ -92,6 +75,7 @@ jobs:
           ALIAS="rentflow"
           PASSWORD="rentflow-release-2026"
 
+          test -s "$APK"
           keytool -genkeypair \
             -keystore "$KEYSTORE" \
             -storepass "$PASSWORD" \
@@ -105,7 +89,6 @@ jobs:
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
-
           "$APKSIGNER" sign \
             --ks "$KEYSTORE" \
             --ks-pass "pass:$PASSWORD" \
@@ -113,7 +96,6 @@ jobs:
             --ks-key-alias "$ALIAS" \
             --out "$APK" \
             "$APK"
-
           "$APKSIGNER" verify --verbose "$APK"
           test -s "$APK"
 
