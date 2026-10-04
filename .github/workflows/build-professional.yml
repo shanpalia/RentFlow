@@ -31,7 +31,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.11.1'
+          gradle-version: '8.14.0'
 
       - name: Create Android local.properties
         shell: bash
@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gradle -p android wrapper --gradle-version 8.11.1
+          gradle -p android wrapper --gradle-version 8.14.0
           chmod +x android/gradlew
 
       - name: Verify Android project
