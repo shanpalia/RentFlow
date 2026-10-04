@@ -27,7 +27,6 @@ jobs:
           mkdir -p android/app/src/main/res/drawable
           mkdir -p android/app/src/main/res/values-v31
           mkdir -p android/app/src/main/res/values-night-v31
-
           cat > android/app/src/main/res/drawable/ic_rentflow.xml <<'EOF'
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
             <path android:fillColor="#00A889" android:pathData="M18,4 L90,4 Q104,4 104,18 L104,90 Q104,104 90,104 L18,104 Q4,104 4,90 L4,18 Q4,4 18,4 Z"/>
@@ -35,49 +34,30 @@ jobs:
             <path android:fillColor="#FFFFFF" android:pathData="M83,66 L43,66 L51,58 L45,52 L26,71 L45,90 L51,84 L43,76 L83,76 Z"/>
           </vector>
           EOF
-
           cat > android/app/src/main/res/drawable/launch_background.xml <<'EOF'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
             <item android:drawable="@android:color/white" />
             <item android:gravity="center" android:drawable="@drawable/ic_rentflow" />
           </layer-list>
           EOF
-
           cat > android/app/src/main/res/values-v31/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-            <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-              <item name="android:forceDarkAllowed">false</item>
-              <item name="android:windowSplashScreenBackground">#FFFFFF</item>
-              <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_rentflow</item>
-            </style>
-            <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-              <item name="android:windowBackground">#F5F9F7</item>
-            </style>
+            <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar"><item name="android:forceDarkAllowed">false</item><item name="android:windowSplashScreenBackground">#FFFFFF</item><item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_rentflow</item></style>
+            <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar"><item name="android:windowBackground">#F5F9F7</item></style>
           </resources>
           EOF
-
           cat > android/app/src/main/res/values-night-v31/styles.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-            <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-              <item name="android:forceDarkAllowed">false</item>
-              <item name="android:windowSplashScreenBackground">#FFFFFF</item>
-              <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_rentflow</item>
-            </style>
-            <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-              <item name="android:windowBackground">#F5F9F7</item>
-            </style>
+            <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar"><item name="android:forceDarkAllowed">false</item><item name="android:windowSplashScreenBackground">#FFFFFF</item><item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_rentflow</item></style>
+            <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar"><item name="android:windowBackground">#F5F9F7</item></style>
           </resources>
           EOF
-
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android/app/src/main/AndroidManifest.xml')
-          s=p.read_text()
-          s=s.replace('android:label="rentflow"','android:label="RentFlow"')
-          s=s.replace('android:icon="@mipmap/ic_launcher"','android:icon="@drawable/ic_rentflow"')
-          s=s.replace('android:roundIcon="@mipmap/ic_launcher_round"','android:roundIcon="@drawable/ic_rentflow"')
+          s=p.read_text().replace('android:label="rentflow"','android:label="RentFlow"').replace('android:icon="@mipmap/ic_launcher"','android:icon="@drawable/ic_rentflow"').replace('android:roundIcon="@mipmap/ic_launcher_round"','android:roundIcon="@drawable/ic_rentflow"')
           s=s.replace('<application','<application android:enableOnBackInvokedCallback="true"',1)
           p.write_text(s)
           PY
@@ -87,14 +67,10 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
-
           p = Path('lib/main.dart')
           s = p.read_text()
-
           if "import 'update_service.dart';" not in s:
               s = s.replace("import 'package:url_launcher/url_launcher.dart';", "import 'package:url_launcher/url_launcher.dart';\nimport 'update_service.dart';")
-
           old_load = '''  Future<void> _load() async {
               await db.load();
               if (mounted) setState(() => loading = false);
@@ -112,19 +88,15 @@ jobs:
               if (!mounted) return;
               await showUpdateCheck(context);
             }'''
-          if old_load in s:
-              s = s.replace(old_load, new_load, 1)
-
+          s = s.replace(old_load, new_load, 1)
           old_home = """                IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())), icon: const Icon(Icons.settings_outlined)),
                 IconButton(onPressed: () => showAbout(context), icon: const Icon(Icons.info_outline_rounded)),"""
           new_home = """                IconButton(onPressed: () => showUpdateCheck(context), icon: const Icon(Icons.notifications_none_rounded)),
                 IconButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())), icon: const Icon(Icons.settings_outlined)),"""
-          if old_home in s:
-              s = s.replace(old_home, new_home, 1)
-
+          s = s.replace(old_home, new_home, 1)
           new_settings = r'''Future<void> showUpdateCheck(BuildContext context, {bool silent = false}) async {
   if (!silent) {
-    await showDialog<void>(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => const AlertDialog(
@@ -132,58 +104,28 @@ jobs:
       ),
     );
   }
-
   final info = await UpdateService.check();
   if (!context.mounted) return;
-
-  if (!silent) {
-    Navigator.of(context).pop();
-  }
-
+  if (!silent) Navigator.of(context).pop();
   if (info == null) {
     if (!silent) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Update Check'),
-          content: const Text('Could not connect to PaliaAPK HUB. Please try again later.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-        ),
-      );
+      await showDialog<void>(context: context, builder: (context) => AlertDialog(title: const Text('Update Check'), content: const Text('Could not connect to PaliaAPK HUB. Please try again later.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
     }
     return;
   }
-
   if (!info.isNewer) {
     if (!silent) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('You are up to date'),
-          content: Text('RentFlow ${rentFlowCurrentVersion} is the latest version.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-        ),
-      );
+      await showDialog<void>(context: context, builder: (context) => AlertDialog(title: const Text('You are up to date'), content: Text('RentFlow $rentFlowCurrentVersion is the latest version.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
     }
     return;
   }
-
   await showDialog<void>(
     context: context,
     barrierDismissible: !info.forceUpdate,
     builder: (context) => AlertDialog(
       title: const Row(children: [Icon(Icons.system_update_rounded, color: primary), SizedBox(width: 10), Expanded(child: Text('Update available'))]),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('RentFlow ${info.version} is available.', style: const TextStyle(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 10),
-        Text(info.releaseNotes),
-        const SizedBox(height: 10),
-        const Text('Open PaliaAPK HUB to download the latest APK.', style: TextStyle(color: muted)),
-      ]),
-      actions: [
-        if (!info.forceUpdate) TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
-        FilledButton.icon(onPressed: () async { await UpdateService.openUpdate(info); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.download_rounded), label: const Text('Update Now')),
-      ],
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RentFlow ${info.version} is available.', style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 10), Text(info.releaseNotes), const SizedBox(height: 10), const Text('Open PaliaAPK HUB to download the latest APK.', style: TextStyle(color: muted))]),
+      actions: [if (!info.forceUpdate) TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')), FilledButton.icon(onPressed: () async { await UpdateService.openUpdate(info); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.download_rounded), label: const Text('Update Now'))],
     ),
   );
 }
@@ -192,9 +134,7 @@ class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
   Future<void> openWebsite(BuildContext context) async {
     final uri = Uri.parse(websiteUrl);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open website')));
-    }
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open website')));
   }
   @override
   Widget build(BuildContext context) {
@@ -204,21 +144,9 @@ class SettingsPage extends StatelessWidget {
         Card(color: mint, child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [const Brand(size: 64), const SizedBox(width: 16), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('RentFlow', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)), Text('By PaliaAPK HUB', style: TextStyle(color: primary, fontWeight: FontWeight.w800)), Text('Developer by ShanPalia', style: TextStyle(color: muted))]))]))),
         const SizedBox(height: 14),
         Card(child: Column(children: [
-          ListTile(
-            leading: const Icon(Icons.system_update_rounded, color: primary),
-            title: const Text('Check for App Update', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: const Text('Check the PaliaAPK HUB website for a newer RentFlow APK'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => showUpdateCheck(context),
-          ),
+          ListTile(leading: const Icon(Icons.system_update_rounded, color: primary), title: const Text('Check for App Update', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Check the PaliaAPK HUB website for a newer RentFlow APK'), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => showUpdateCheck(context)),
           const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.language_rounded, color: primary),
-            title: const Text('PaliaAPK HUB Website', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: const Text('Open website'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => openWebsite(context),
-          ),
+          ListTile(leading: const Icon(Icons.language_rounded, color: primary), title: const Text('PaliaAPK HUB Website', style: TextStyle(fontWeight: FontWeight.w800)), subtitle: const Text('Open website'), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => openWebsite(context)),
         ])),
         const SizedBox(height: 18),
         const Center(child: Text('RentFlow 1.0.0', style: TextStyle(color: muted))),
@@ -229,12 +157,9 @@ class SettingsPage extends StatelessWidget {
   }
 }
 '''
-
           start = s.find('class SettingsPage extends StatelessWidget {')
           end = s.find('void showAbout(BuildContext context) {')
-          if start != -1 and end != -1:
-              s = s[:start] + new_settings + '\n' + s[end:]
-
+          if start != -1 and end != -1: s = s[:start] + new_settings + '\n' + s[end:]
           p.write_text(s)
           PY
 
