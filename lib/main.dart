@@ -669,13 +669,13 @@ Future<void> rentalForm(BuildContext context, Store store, VoidCallback refresh)
     title: const Text('New Rental'),
     content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
       DropdownButtonFormField<String>(
-        value: customer,
+        initialValue: customer,
         decoration: const InputDecoration(labelText: 'Customer'),
         items: store.customers.map((c) => DropdownMenuItem(value: '${c['name']}', child: Text('${c['name']}'))).toList(),
         onChanged: (v) { if (v != null) setLocal(() => customer = v); },
       ),
       DropdownButtonFormField<String>(
-        value: item,
+        initialValue: item,
         decoration: const InputDecoration(labelText: 'Item'),
         items: store.items.map((i) => DropdownMenuItem(value: '${i['name']}', child: Text('${i['name']}'))).toList(),
         onChanged: (v) {
@@ -720,7 +720,7 @@ Future<void> receiveForm(BuildContext context, Store store, VoidCallback refresh
     title: const Text('Receive Item'),
     content: Column(mainAxisSize: MainAxisSize.min, children: [
       DropdownButtonFormField<String>(
-        value: '${selected['customer']}|${selected['item']}',
+        initialValue: '${selected['customer']}|${selected['item']}',
         items: active.map((r) => DropdownMenuItem(value: '${r['customer']}|${r['item']}', child: Text('${r['customer']} • ${r['item']}'))).toList(),
         onChanged: (v) {
           if (v == null) return;
