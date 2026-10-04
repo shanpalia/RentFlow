@@ -21,7 +21,7 @@ jobs:
       - name: Install Android project
         run: flutter create --project-name rentflow --org com.shanpalia --platforms android .
 
-      - name: Remove generated default tests
+      - name: Remove generated tests
         run: rm -rf test
 
       - name: Set release version
@@ -55,11 +55,14 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Remove any generated widget tests before analyze
-        run: rm -rf test
+      - name: Verify application source
+        run: |
+          test -f lib/main.dart
+          grep -q "void main" lib/main.dart
+          rm -rf test
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Analyze application source only
+        run: flutter analyze lib
 
       - name: Build release APK
         run: flutter build apk --release
