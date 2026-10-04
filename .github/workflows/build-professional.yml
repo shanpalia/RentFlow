@@ -59,6 +59,24 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Fix PDF page format import
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/rentflow_modern.dart')
+          s = p.read_text()
+          if "import 'package:pdf/pdf.dart';" not in s:
+              s = s.replace(
+                  "import 'package:pdf/widgets.dart' as pw;",
+                  "import 'package:pdf/pdf.dart';\nimport 'package:pdf/widgets.dart' as pw;",
+                  1,
+              )
+          s = s.replace('pw.PdfPageFormat.a4', 'PdfPageFormat.a4')
+          p.write_text(s)
+          PY
+
       - name: Analyze Dart source
         run: flutter analyze lib
 
