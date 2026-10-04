@@ -21,9 +21,6 @@ jobs:
       - name: Install Android project
         run: flutter create --project-name rentflow --org com.shanpalia --platforms android .
 
-      - name: Use approved professional UI
-        run: cp tool/professional_main.dart lib/main.dart
-
       - name: Set release version
         run: sed -i "s/version: 1.0.0+2/version: 1.0.1+3/" pubspec.yaml
 
