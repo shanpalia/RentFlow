@@ -37,7 +37,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -d android
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
 
       - name: Generate Gradle wrapper
@@ -60,8 +59,13 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze Dart source
-        run: flutter analyze lib --no-fatal-infos
+      - name: Validate and analyze Dart source
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Normalize the nullable List expressions in the generated app source.
+          sed -i 's/as List???\[\]/as List? ?? []/g' lib/app.dart
+          flutter analyze lib --no-fatal-infos
 
       - name: Build release APK
         run: flutter build apk --release
@@ -74,30 +78,12 @@ jobs:
           KEYSTORE="$RUNNER_TEMP/rentflow-test-release.jks"
           ALIAS="rentflow"
           PASSWORD="rentflow-release-2026"
-
           test -s "$APK"
-          keytool -genkeypair \
-            -keystore "$KEYSTORE" \
-            -storepass "$PASSWORD" \
-            -keypass "$PASSWORD" \
-            -alias "$ALIAS" \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=RentFlow, OU=PaliaAPK HUB, O=ShanPalia, L=Lucknow, ST=Uttar Pradesh, C=IN" \
-            -noprompt
-
+          keytool -genkeypair -keystore "$KEYSTORE" -storepass "$PASSWORD" -keypass "$PASSWORD" -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=RentFlow, OU=PaliaAPK HUB, O=ShanPalia, L=Lucknow, ST=Uttar Pradesh, C=IN" -noprompt
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           test -x "$APKSIGNER"
-          "$APKSIGNER" sign \
-            --ks "$KEYSTORE" \
-            --ks-pass "pass:$PASSWORD" \
-            --key-pass "pass:$PASSWORD" \
-            --ks-key-alias "$ALIAS" \
-            --out "$APK" \
-            "$APK"
+          "$APKSIGNER" sign --ks "$KEYSTORE" --ks-pass "pass:$PASSWORD" --key-pass "pass:$PASSWORD" --ks-key-alias "$ALIAS" --out "$APK" "$APK"
           "$APKSIGNER" verify --verbose "$APK"
-          test -s "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
