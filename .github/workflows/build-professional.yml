@@ -46,99 +46,22 @@ jobs:
           gradle -p android wrapper --gradle-version 8.14.3
           chmod +x android/gradlew
 
-      - name: Verify Android project
+      - name: Verify project
         shell: bash
         run: |
           set -euo pipefail
           test -f pubspec.yaml
           test -f lib/app.dart
+          test -f lib/professional_app.dart
           test -f android/gradlew
-          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
-          grep -E 'distributionUrl=.*gradle-8\.14\.[0-9]+.*-bin\.zip' android/gradle/wrapper/gradle-wrapper.properties
+          test -f assets/rentflow_logo.svg
+          test -f assets/rentflow_splash.svg
 
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Validate and analyze Dart source
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          p = Path('lib/app.dart')
-          s = p.read_text(encoding='utf-8')
-
-          # Normalize generated nullable List syntax.
-          s = s.replace('as List???[]', 'as List? ?? []')
-          s = s.replace('as List???[', 'as List? ?? [')
-
-          # Replace the generated StatCard as a complete, balanced widget.
-          # This avoids fragile one-character parenthesis fixes.
-          stat = '''class StatCard extends StatelessWidget {
-            final String label;
-            final String value;
-            final IconData icon;
-            const StatCard(this.label, this.value, this.icon, {super.key});
-
-            @override
-            Widget build(BuildContext context) {
-              return Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: line),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(11),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE7F7F2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(icon, color: primary, size: 27),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            value,
-                            style: const TextStyle(
-                              color: dark,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(
-                            label,
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-          }
-          '''
-          s, n = re.subn(r'class StatCard extends StatelessWidget \{.*?\n\}\nclass ActionBox', stat + 'class ActionBox', s, count=1, flags=re.S)
-          if n != 1:
-              raise SystemExit('Could not locate StatCard block for replacement')
-
-          # Keep the PDF parser correction if that generated form is present.
-          old_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')]));\n  final bytes"
-          if old_pdf in s:
-              s = s.replace(old_pdf, old_pdf.replace(']));\n  final bytes', '])));\n  final bytes'), 1)
-
-          p.write_text(s, encoding='utf-8')
-          PY
-          flutter analyze lib --no-fatal-infos
+      - name: Analyze Dart source
+        run: flutter analyze lib --no-fatal-infos
 
       - name: Build release APK
         run: flutter build apk --release
@@ -161,6 +84,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: RentFlow-release
+          name: RentFlow-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 14
