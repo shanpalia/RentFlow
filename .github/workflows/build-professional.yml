@@ -51,11 +51,11 @@ jobs:
         run: |
           set -euo pipefail
           test -f pubspec.yaml
-          test -f lib/app.dart
-          test -f lib/professional_app.dart
           test -f android/gradlew
           test -f assets/rentflow_logo.svg
           test -f assets/rentflow_splash.svg
+          test -f lib/rentflow_emerald.dart
+          test -f lib/main.dart
 
       - name: Get dependencies
         run: flutter pub get
