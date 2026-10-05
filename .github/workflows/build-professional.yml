@@ -73,18 +73,17 @@ jobs:
           s = s.replace('as List???[]', 'as List? ?? []')
           s = s.replace('as List???[', 'as List? ?? [')
 
-          # Fix the StatCard closing-parenthesis typo that caused the parser
-          # error around line 130.
+          # Fix the StatCard parser typo: the generated line is missing one
+          # closing parenthesis after the Row/Container/Expanded chain.
           old_stat = "Text(label, style: const TextStyle(color: Colors.black54))])]));"
-          new_stat = "Text(label, style: const TextStyle(color: Colors.black54))])])))"
           if old_stat in s:
-              s = s.replace(old_stat, new_stat, 1)
+              s = s.replace(old_stat, old_stat[:-1] + ')', 1)
 
-          # Fix the PDF Column/Page/addPage closing-parenthesis typo.
+          # Fix the PDF Column/Page/addPage parser typo: one closing
+          # parenthesis is missing before the semicolon.
           old_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')]));\n  final bytes"
-          new_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')])););\n  final bytes"
           if old_pdf in s:
-              s = s.replace(old_pdf, new_pdf, 1)
+              s = s.replace(old_pdf, old_pdf.replace(']));\n  final bytes', '])));\n  final bytes'), 1)
 
           p.write_text(s, encoding='utf-8')
           PY
