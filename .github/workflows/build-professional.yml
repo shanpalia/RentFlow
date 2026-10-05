@@ -63,8 +63,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Normalize the nullable List expressions in the generated app source.
-          sed -i 's/as List???\[\]/as List? ?? []/g' lib/app.dart
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/app.dart')
+          s = p.read_text(encoding='utf-8')
+
+          # Normalize generated nullable List syntax.
+          s = s.replace('as List???[]', 'as List? ?? []')
+          s = s.replace('as List???[', 'as List? ?? [')
+
+          # Fix the StatCard closing-parenthesis typo that caused the parser
+          # error around line 130.
+          old_stat = "Text(label, style: const TextStyle(color: Colors.black54))])]));"
+          new_stat = "Text(label, style: const TextStyle(color: Colors.black54))])])))"
+          if old_stat in s:
+              s = s.replace(old_stat, new_stat, 1)
+
+          # Fix the PDF Column/Page/addPage closing-parenthesis typo.
+          old_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')]));\n  final bytes"
+          new_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')])););\n  final bytes"
+          if old_pdf in s:
+              s = s.replace(old_pdf, new_pdf, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
           flutter analyze lib --no-fatal-infos
 
       - name: Build release APK
