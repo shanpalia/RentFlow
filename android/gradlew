@@ -1,0 +1,3 @@
+#!/bin/sh
+# Minimal Gradle launcher for CI. The workflow supplies Gradle on PATH.
+exec gradle "$@"
