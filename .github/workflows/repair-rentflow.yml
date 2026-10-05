@@ -10,13 +10,20 @@ permissions:
 
 jobs:
   repair:
-    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message != 'fix: restore RentFlow source'
+    if: ${{ !contains(github.event.head_commit.message || '', 'fix: restore RentFlow source') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
 
       - name: Restore known-good source and close AppDrawer
         shell: bash
@@ -36,8 +43,6 @@ jobs:
 
       - name: Format
         run: dart format lib
-        env:
-          FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.47.6-x64/flutter
 
       - name: Commit repaired source
         shell: bash
