@@ -1,3 +1,3 @@
-import 'rentflow_fixed.dart';
+import 'rentflow_app.dart';
 
 void startRentFlow() => startRentFlowFixed();
