@@ -1,0 +1,50 @@
+name: Repair RentFlow source
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message != 'fix: restore RentFlow source'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Restore known-good source and close AppDrawer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout efa9e558965a98f8ca18bcd3465b8dd4ca490b0e -- lib/rentflow_emerald.dart
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/rentflow_emerald.dart')
+          s = p.read_text()
+          old = "      );\n\nclass HomePage extends StatefulWidget {"
+          new = "      );\n}\n\nclass HomePage extends StatefulWidget {"
+          if old not in s:
+              raise SystemExit('Expected AppDrawer/HomePage boundary not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+
+      - name: Format
+        run: dart format lib
+        env:
+          FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.47.6-x64/flutter
+
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/rentflow_emerald.dart
+          git commit -m "fix: restore RentFlow source" || exit 0
+          git push
