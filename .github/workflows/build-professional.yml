@@ -65,6 +65,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           p = Path('lib/app.dart')
           s = p.read_text(encoding='utf-8')
@@ -73,14 +74,64 @@ jobs:
           s = s.replace('as List???[]', 'as List? ?? []')
           s = s.replace('as List???[', 'as List? ?? [')
 
-          # Fix the StatCard parser typo: the generated line is missing one
-          # closing parenthesis after the Row/Container/Expanded chain.
-          old_stat = "Text(label, style: const TextStyle(color: Colors.black54))])]));"
-          if old_stat in s:
-              s = s.replace(old_stat, old_stat[:-1] + ')', 1)
+          # Replace the generated StatCard as a complete, balanced widget.
+          # This avoids fragile one-character parenthesis fixes.
+          stat = '''class StatCard extends StatelessWidget {
+            final String label;
+            final String value;
+            final IconData icon;
+            const StatCard(this.label, this.value, this.icon, {super.key});
 
-          # Fix the PDF Column/Page/addPage parser typo: one closing
-          # parenthesis is missing before the semicolon.
+            @override
+            Widget build(BuildContext context) {
+              return Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: line),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE7F7F2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(icon, color: primary, size: 27),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            value,
+                            style: const TextStyle(
+                              color: dark,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            label,
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+          '''
+          s, n = re.subn(r'class StatCard extends StatelessWidget \{.*?\n\}\nclass ActionBox', stat + 'class ActionBox', s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('Could not locate StatCard block for replacement')
+
+          # Keep the PDF parser correction if that generated form is present.
           old_pdf = "pw.Text('RentFlow  •  By PaliaAPK HUB  •  Developer by ShanPalia')]));\n  final bytes"
           if old_pdf in s:
               s = s.replace(old_pdf, old_pdf.replace(']));\n  final bytes', '])));\n  final bytes'), 1)
