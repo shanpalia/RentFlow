@@ -152,7 +152,8 @@ class StoreDB extends ChangeNotifier {
     await save();
   }
 
-  Future<void> editRecord(String key, int index, Map<String, dynamic> data) async {
+  Future<void> editRecord(
+      String key, int index, Map<String, dynamic> data) async {
     (shop[key] as List)[index] = data;
     await save();
   }
@@ -271,9 +272,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 const Text('Main Menu',
                     style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        color: ink)),
+                        fontSize: 30, fontWeight: FontWeight.w900, color: ink)),
                 Text(
                   has
                       ? '${store.shop['name'] ?? 'Shop'} • Emerald workspace'
@@ -333,8 +332,7 @@ class _HomePageState extends State<HomePage> {
                     icon: Icons.receipt_long_rounded,
                     title: 'Transactions / Bills',
                     subtitle: 'View entries and print PDF bills',
-                    onTap: () =>
-                        openPage(context, const TransactionsPage()),
+                    onTap: () => openPage(context, const TransactionsPage()),
                   ),
                   const SectionTitle('SYSTEM'),
                   MenuTile(
@@ -426,24 +424,38 @@ class _ShopFormState extends State<ShopFormPage> {
     super.initState();
     final x = store.shop;
     name = TextEditingController(text: widget.edit ? '${x['name'] ?? ''}' : '');
-    owner = TextEditingController(text: widget.edit ? '${x['owner'] ?? ''}' : '');
-    mobile = TextEditingController(text: widget.edit ? '${x['mobile'] ?? ''}' : '');
-    address = TextEditingController(text: widget.edit ? '${x['address'] ?? ''}' : '');
+    owner =
+        TextEditingController(text: widget.edit ? '${x['owner'] ?? ''}' : '');
+    mobile =
+        TextEditingController(text: widget.edit ? '${x['mobile'] ?? ''}' : '');
+    address =
+        TextEditingController(text: widget.edit ? '${x['address'] ?? ''}' : '');
   }
+
   @override
   void dispose() {
-    name.dispose(); owner.dispose(); mobile.dispose(); address.dispose();
+    name.dispose();
+    owner.dispose();
+    mobile.dispose();
+    address.dispose();
     super.dispose();
   }
+
   Future<void> save() async {
     if (name.text.trim().isEmpty) return;
     final data = {
-      'name': name.text.trim(), 'owner': owner.text.trim(),
-      'mobile': mobile.text.trim(), 'address': address.text.trim()
+      'name': name.text.trim(),
+      'owner': owner.text.trim(),
+      'mobile': mobile.text.trim(),
+      'address': address.text.trim()
     };
-    if (widget.edit) await store.updateShop(data); else await store.addShop(data);
+    if (widget.edit)
+      await store.updateShop(data);
+    else
+      await store.addShop(data);
     if (mounted) Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) => PageFrame(
         title: widget.edit ? 'Edit Shop' : 'Register Shop',
@@ -453,7 +465,8 @@ class _ShopFormState extends State<ShopFormPage> {
           FieldBox('Mobile Number', mobile, keyboard: TextInputType.phone),
           FieldBox('Address', address, maxLines: 3),
           PrimaryButton(
-              label: widget.edit ? 'Update Shop' : 'Save Shop', onPressed: save),
+              label: widget.edit ? 'Update Shop' : 'Save Shop',
+              onPressed: save),
         ]),
       );
 }
@@ -470,7 +483,8 @@ class ShopsPage extends StatelessWidget {
               leading: const Icon(Icons.store_rounded, color: emerald),
               title: Text('${store.shop['name'] ?? ''}',
                   style: const TextStyle(fontWeight: FontWeight.w900)),
-              subtitle: Text('${store.shop['owner'] ?? ''}\n${store.shop['address'] ?? ''}'),
+              subtitle: Text(
+                  '${store.shop['owner'] ?? ''}\n${store.shop['address'] ?? ''}'),
               trailing: IconButton(
                   onPressed: () =>
                       openPage(context, const ShopFormPage(edit: true)),
@@ -541,14 +555,21 @@ class _ItemFormState extends State<ItemFormPage> {
     qty = TextEditingController(text: '${x['quantity'] ?? 0}');
     rent = TextEditingController(text: '${x['rentPrice'] ?? 0}');
   }
+
   @override
   void dispose() {
-    code.dispose(); name.dispose(); unit.dispose(); qty.dispose(); rent.dispose();
+    code.dispose();
+    name.dispose();
+    unit.dispose();
+    qty.dispose();
+    rent.dispose();
     super.dispose();
   }
+
   Future<void> save() async {
     if (name.text.trim().isEmpty) return;
-    final old = widget.index == null ? null : store.records('items')[widget.index!];
+    final old =
+        widget.index == null ? null : store.records('items')[widget.index!];
     final data = {
       'id': old?['id'] ?? newId(),
       'code': code.text.trim(),
@@ -564,20 +585,25 @@ class _ItemFormState extends State<ItemFormPage> {
     }
     if (mounted) Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) => PageFrame(
-        title: widget.index == null ? 'New Inventory Item' : 'Edit Inventory Item',
+        title:
+            widget.index == null ? 'New Inventory Item' : 'Edit Inventory Item',
         child: Column(children: [
           FieldBox('Item Code', code),
           FieldBox('Item Name / Description', name),
           Row(children: [
             Expanded(child: FieldBox('Unit', unit)),
             const SizedBox(width: 10),
-            Expanded(child: FieldBox('Opening Quantity', qty, keyboard: TextInputType.number)),
+            Expanded(
+                child: FieldBox('Opening Quantity', qty,
+                    keyboard: TextInputType.number)),
           ]),
           FieldBox('Rent Price / Day', rent,
               keyboard: const TextInputType.numberWithOptions(decimal: true)),
-          PrimaryButton(label: 'Save Item', icon: Icons.save_outlined, onPressed: save),
+          PrimaryButton(
+              label: 'Save Item', icon: Icons.save_outlined, onPressed: save),
         ]),
       );
 }
@@ -600,12 +626,14 @@ class CustomersPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         if (r.isEmpty) const EmptyState('No customers added yet.'),
-        ...List.generate(r.length, (i) => DataRowCard(
-              title: '${r[i]['name']}',
-              subtitle: '${r[i]['mobile']} • ${r[i]['address']}',
-              onEdit: () => openPage(context, CustomerFormPage(index: i)),
-              onDelete: () => store.deleteRecord('customers', i),
-            )),
+        ...List.generate(
+            r.length,
+            (i) => DataRowCard(
+                  title: '${r[i]['name']}',
+                  subtitle: '${r[i]['mobile']} • ${r[i]['address']}',
+                  onEdit: () => openPage(context, CustomerFormPage(index: i)),
+                  onDelete: () => store.deleteRecord('customers', i),
+                )),
       ]),
     );
   }
@@ -630,13 +658,19 @@ class _CustomerFormState extends State<CustomerFormPage> {
     mobile = TextEditingController(text: '${x['mobile'] ?? ''}');
     address = TextEditingController(text: '${x['address'] ?? ''}');
   }
+
   @override
   void dispose() {
-    name.dispose(); mobile.dispose(); address.dispose(); super.dispose();
+    name.dispose();
+    mobile.dispose();
+    address.dispose();
+    super.dispose();
   }
+
   Future<void> save() async {
     if (name.text.trim().isEmpty) return;
-    final old = widget.index == null ? null : store.records('customers')[widget.index!];
+    final old =
+        widget.index == null ? null : store.records('customers')[widget.index!];
     final data = {
       'id': old?['id'] ?? newId(),
       'name': name.text.trim(),
@@ -650,14 +684,18 @@ class _CustomerFormState extends State<CustomerFormPage> {
     }
     if (mounted) Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) => PageFrame(
-        title: widget.index == null ? 'New Customer / Party' : 'Edit Customer / Party',
+        title: widget.index == null
+            ? 'New Customer / Party'
+            : 'Edit Customer / Party',
         child: Column(children: [
           FieldBox('Customer / Party Name', name),
           FieldBox('Mobile Number', mobile, keyboard: TextInputType.phone),
           FieldBox('Address', address, maxLines: 3),
-          PrimaryButton(label: 'Save Party', icon: Icons.save_outlined, onPressed: save),
+          PrimaryButton(
+              label: 'Save Party', icon: Icons.save_outlined, onPressed: save),
         ]),
       );
 }
@@ -686,8 +724,12 @@ class _IssuePageState extends State<IssuePage> {
     super.initState();
     invoice.text = 'INV-${DateTime.now().millisecondsSinceEpoch}';
   }
+
   @override
-  void dispose() { invoice.dispose(); super.dispose(); }
+  void dispose() {
+    invoice.dispose();
+    super.dispose();
+  }
 
   void addLine() {
     final items = store.records('items');
@@ -716,8 +758,11 @@ class _IssuePageState extends State<IssuePage> {
       });
     }
     final data = {
-      'id': newId(), 'invoice': invoice.text.trim(), 'customerId': customer,
-      'date': today(), 'items': saved,
+      'id': newId(),
+      'invoice': invoice.text.trim(),
+      'customerId': customer,
+      'date': today(),
+      'items': saved,
     };
     await store.addRecord('issues', data);
     for (final l in lines) await store.updateItemStock(l.itemId, -l.qty);
@@ -741,7 +786,7 @@ class _IssuePageState extends State<IssuePage> {
               decoration: const InputDecoration(labelText: 'Customer / Party'),
               items: customers
                   .map((x) => DropdownMenuItem<String>(
-                        value: '${x['id']}', child: Text('${x['name']}')))
+                      value: '${x['id']}', child: Text('${x['name']}')))
                   .toList(),
               onChanged: (v) => setState(() => customer = v),
             ),
@@ -749,7 +794,8 @@ class _IssuePageState extends State<IssuePage> {
           IconButton(
             tooltip: 'Add Party',
             onPressed: () => openPage(context, const CustomerFormPage()),
-            icon: const Icon(Icons.add_circle_rounded, color: emerald, size: 30),
+            icon:
+                const Icon(Icons.add_circle_rounded, color: emerald, size: 30),
           ),
         ]),
         const SizedBox(height: 12),
@@ -758,7 +804,8 @@ class _IssuePageState extends State<IssuePage> {
         if (items.isEmpty) const EmptyState('Add inventory items first.'),
         ...List.generate(lines.length, (i) {
           final l = lines[i];
-          final item = items.firstWhere((x) => '${x['id']}' == l.itemId, orElse: () => items.first);
+          final item = items.firstWhere((x) => '${x['id']}' == l.itemId,
+              orElse: () => items.first);
           return Card(
             elevation: 0,
             color: Colors.white,
@@ -769,32 +816,61 @@ class _IssuePageState extends State<IssuePage> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: l.itemId,
-                      decoration: const InputDecoration(labelText: 'Inventory Item'),
-                      items: items.map((x) => DropdownMenuItem<String>(
-                          value: '${x['id']}', child: Text('${x['name']}'))).toList(),
+                      decoration:
+                          const InputDecoration(labelText: 'Inventory Item'),
+                      items: items
+                          .map((x) => DropdownMenuItem<String>(
+                              value: '${x['id']}', child: Text('${x['name']}')))
+                          .toList(),
                       onChanged: (v) {
                         if (v == null) return;
                         final x = items.firstWhere((e) => '${e['id']}' == v);
-                        setState(() { l.itemId = v; l.rent = double.tryParse('${x['rentPrice'] ?? 0}') ?? 0; });
+                        setState(() {
+                          l.itemId = v;
+                          l.rent =
+                              double.tryParse('${x['rentPrice'] ?? 0}') ?? 0;
+                        });
                       },
                     ),
                   ),
-                  IconButton(onPressed: () => setState(() => lines.removeAt(i)), icon: const Icon(Icons.delete_outline, color: Colors.red)),
+                  IconButton(
+                      onPressed: () => setState(() => lines.removeAt(i)),
+                      icon:
+                          const Icon(Icons.delete_outline, color: Colors.red)),
                 ]),
                 Row(children: [
-                  Expanded(child: FieldBox('Qty (stock ${item['quantity'] ?? 0})', TextEditingController(text: '${l.qty}'), keyboard: TextInputType.number, onChanged: (v) => l.qty = int.tryParse(v) ?? 1)),
+                  Expanded(
+                      child: FieldBox('Qty (stock ${item['quantity'] ?? 0})',
+                          TextEditingController(text: '${l.qty}'),
+                          keyboard: TextInputType.number,
+                          onChanged: (v) => l.qty = int.tryParse(v) ?? 1)),
                   const SizedBox(width: 8),
-                  Expanded(child: FieldBox('Rent / Day', TextEditingController(text: '${l.rent}'), keyboard: const TextInputType.numberWithOptions(decimal: true), onChanged: (v) => l.rent = double.tryParse(v) ?? 0)),
+                  Expanded(
+                      child: FieldBox('Rent / Day',
+                          TextEditingController(text: '${l.rent}'),
+                          keyboard: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          onChanged: (v) => l.rent = double.tryParse(v) ?? 0)),
                   const SizedBox(width: 8),
-                  Expanded(child: FieldBox('Rent Days', TextEditingController(text: '${l.days}'), keyboard: TextInputType.number, onChanged: (v) => l.days = int.tryParse(v) ?? 1)),
+                  Expanded(
+                      child: FieldBox(
+                          'Rent Days', TextEditingController(text: '${l.days}'),
+                          keyboard: TextInputType.number,
+                          onChanged: (v) => l.days = int.tryParse(v) ?? 1)),
                 ]),
               ]),
             ),
           );
         }),
-        PrimaryButton(label: 'Add Another Item', icon: Icons.add_rounded, onPressed: addLine),
+        PrimaryButton(
+            label: 'Add Another Item',
+            icon: Icons.add_rounded,
+            onPressed: addLine),
         const SizedBox(height: 10),
-        PrimaryButton(label: 'Save & Print Issue Bill', icon: Icons.picture_as_pdf_rounded, onPressed: save),
+        PrimaryButton(
+            label: 'Save & Print Issue Bill',
+            icon: Icons.picture_as_pdf_rounded,
+            onPressed: save),
       ]),
     );
   }
@@ -814,7 +890,11 @@ class _ReturnPageState extends State<ReturnPage> {
   final selected = <String, int>{};
 
   @override
-  void dispose() { amount.dispose(); notes.dispose(); super.dispose(); }
+  void dispose() {
+    amount.dispose();
+    notes.dispose();
+    super.dispose();
+  }
 
   Map<String, dynamic>? get selectedIssue {
     for (final x in store.records('issues')) {
@@ -827,7 +907,9 @@ class _ReturnPageState extends State<ReturnPage> {
     final issue = selectedIssue;
     if (issue == null || selected.values.every((v) => v <= 0)) return;
     final returnedItems = <Map<String, dynamic>>[];
-    final issueItems = (issue['items'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final issueItems = (issue['items'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
     for (final item in issueItems) {
       final id = '${item['itemId']}';
       final n = selected[id] ?? 0;
@@ -838,18 +920,36 @@ class _ReturnPageState extends State<ReturnPage> {
       }
     }
     if (returnedItems.isEmpty) return;
-    final calculated = returnedItems.fold<double>(0, (sum, x) => sum + ((double.tryParse('${x['rentPrice'] ?? 0}') ?? 0) * (int.tryParse('${x['qty'] ?? 0}') ?? 0) * (int.tryParse('${x['rentDays'] ?? 1}') ?? 1)));
+    final calculated = returnedItems.fold<double>(
+        0,
+        (sum, x) =>
+            sum +
+            ((double.tryParse('${x['rentPrice'] ?? 0}') ?? 0) *
+                (int.tryParse('${x['qty'] ?? 0}') ?? 0) *
+                (int.tryParse('${x['rentDays'] ?? 1}') ?? 1)));
     final data = {
-      'id': newId(), 'returnInvoice': 'RET-${DateTime.now().millisecondsSinceEpoch}',
-      'issueId': issueId, 'customerId': customer, 'date': today(),
-      'amount': double.tryParse(amount.text) ?? calculated, 'notes': notes.text.trim(),
+      'id': newId(),
+      'returnInvoice': 'RET-${DateTime.now().millisecondsSinceEpoch}',
+      'issueId': issueId,
+      'customerId': customer,
+      'date': today(),
+      'amount': double.tryParse(amount.text) ?? calculated,
+      'notes': notes.text.trim(),
       'items': returnedItems,
     };
     await store.addRecord('returns', data);
     final issues = store.records('issues');
     final idx = issues.indexWhere((x) => '${x['id']}' == issueId);
-    if (idx >= 0) await store.editRecord('issues', idx, {...issue, 'items': issueItems.where((x) => (int.tryParse('${x['qty']}') ?? 0) > 0).toList()});
-    for (final x in returnedItems) await store.updateItemStock('${x['itemId']}', int.tryParse('${x['qty']}') ?? 0);
+    if (idx >= 0)
+      await store.editRecord('issues', idx, {
+        ...issue,
+        'items': issueItems
+            .where((x) => (int.tryParse('${x['qty']}') ?? 0) > 0)
+            .toList()
+      });
+    for (final x in returnedItems)
+      await store.updateItemStock(
+          '${x['itemId']}', int.tryParse('${x['qty']}') ?? 0);
     if (mounted) {
       await printReturnBill(data);
       if (mounted) Navigator.pop(context);
@@ -859,36 +959,73 @@ class _ReturnPageState extends State<ReturnPage> {
   @override
   Widget build(BuildContext context) {
     final customers = store.records('customers');
-    final issues = store.records('issues').where((x) => customer == null || '${x['customerId']}' == customer).toList();
+    final issues = store
+        .records('issues')
+        .where((x) => customer == null || '${x['customerId']}' == customer)
+        .toList();
     final issue = selectedIssue;
-    final issueItems = (issue?['items'] as List? ?? []).where((e) => (int.tryParse('${e['qty'] ?? 0}') ?? 0) > 0).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final issueItems = (issue?['items'] as List? ?? [])
+        .where((e) => (int.tryParse('${e['qty'] ?? 0}') ?? 0) > 0)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
     return PageFrame(
       title: 'Return Entry',
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          Expanded(child: DropdownButtonFormField<String>(
+          Expanded(
+              child: DropdownButtonFormField<String>(
             value: customer,
             decoration: const InputDecoration(labelText: 'Customer / Party'),
-            items: customers.map((x) => DropdownMenuItem<String>(value: '${x['id']}', child: Text('${x['name']}'))).toList(),
-            onChanged: (v) => setState(() { customer = v; issueId = null; selected.clear(); }),
+            items: customers
+                .map((x) => DropdownMenuItem<String>(
+                    value: '${x['id']}', child: Text('${x['name']}')))
+                .toList(),
+            onChanged: (v) => setState(() {
+              customer = v;
+              issueId = null;
+              selected.clear();
+            }),
           )),
-          IconButton(tooltip: 'Add Party', onPressed: () => openPage(context, const CustomerFormPage()), icon: const Icon(Icons.add_circle_rounded, color: emerald, size: 30)),
+          IconButton(
+              tooltip: 'Add Party',
+              onPressed: () => openPage(context, const CustomerFormPage()),
+              icon: const Icon(Icons.add_circle_rounded,
+                  color: emerald, size: 30)),
         ]),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           value: issueId,
           decoration: const InputDecoration(labelText: 'Issued Invoice'),
-          items: issues.map((x) => DropdownMenuItem<String>(value: '${x['id']}', child: Text('${x['invoice']} • ${customerName('${x['customerId']}')}'))).toList(),
-          onChanged: (v) => setState(() { issueId = v; selected.clear(); }),
+          items: issues
+              .map((x) => DropdownMenuItem<String>(
+                  value: '${x['id']}',
+                  child: Text(
+                      '${x['invoice']} • ${customerName('${x['customerId']}')}')))
+              .toList(),
+          onChanged: (v) => setState(() {
+            issueId = v;
+            selected.clear();
+          }),
         ),
         const SizedBox(height: 12),
         Row(children: [
-          Expanded(child: FieldBox('Return Invoice / No.', TextEditingController(text: issueId == null ? '' : 'RET-${DateTime.now().millisecondsSinceEpoch}'), readOnly: true)),
+          Expanded(
+              child: FieldBox(
+                  'Return Invoice / No.',
+                  TextEditingController(
+                      text: issueId == null
+                          ? ''
+                          : 'RET-${DateTime.now().millisecondsSinceEpoch}'),
+                  readOnly: true)),
           const SizedBox(width: 10),
-          Expanded(child: FieldBox('Return Date', TextEditingController(text: today()), readOnly: true)),
+          Expanded(
+              child: FieldBox(
+                  'Return Date', TextEditingController(text: today()),
+                  readOnly: true)),
         ]),
         const SectionTitle('ITEMS FROM ISSUE'),
-        if (issue == null) const EmptyState('Select a customer and issued invoice.'),
+        if (issue == null)
+          const EmptyState('Select a customer and issued invoice.'),
         ...issueItems.map((item) {
           final id = '${item['itemId']}';
           final max = int.tryParse('${item['qty']}') ?? 0;
@@ -903,24 +1040,41 @@ class _ReturnPageState extends State<ReturnPage> {
               child: Row(children: [
                 const Icon(Icons.inventory_2_outlined, color: emerald),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                  Text('Issued Qty $max • Rent ${money(rent)}/day • $days day(s)'),
-                  Text('Return Rent: ${money(rent * value * days)}', style: const TextStyle(color: emeraldDark, fontWeight: FontWeight.w800)),
-                ])),
-                SizedBox(width: 85, child: TextFormField(
-                  initialValue: value == 0 ? '' : '$value',
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Return', hintText: '0-$max'),
-                  onChanged: (v) => setState(() { selected[id] = (int.tryParse(v) ?? 0).clamp(0, max); }),
-                )),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('${item['name']}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text(
+                          'Issued Qty $max • Rent ${money(rent)}/day • $days day(s)'),
+                      Text('Return Rent: ${money(rent * value * days)}',
+                          style: const TextStyle(
+                              color: emeraldDark, fontWeight: FontWeight.w800)),
+                    ])),
+                SizedBox(
+                    width: 85,
+                    child: TextFormField(
+                      initialValue: value == 0 ? '' : '$value',
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                          labelText: 'Return', hintText: '0-$max'),
+                      onChanged: (v) => setState(() {
+                        selected[id] = (int.tryParse(v) ?? 0).clamp(0, max);
+                      }),
+                    )),
               ]),
             ),
           );
         }),
-        FieldBox('Return Amount (optional)', amount, keyboard: const TextInputType.numberWithOptions(decimal: true)),
+        FieldBox('Return Amount (optional)', amount,
+            keyboard: const TextInputType.numberWithOptions(decimal: true)),
         FieldBox('Return Note', notes, maxLines: 3),
-        PrimaryButton(label: 'Save & Print Return', icon: Icons.picture_as_pdf_rounded, onPressed: save),
+        PrimaryButton(
+            label: 'Save & Print Return',
+            icon: Icons.picture_as_pdf_rounded,
+            onPressed: save),
       ]),
     );
   }
@@ -941,15 +1095,28 @@ class InventoryRegisterPage extends StatelessWidget {
     return PageFrame(
       title: 'Inventory Register',
       child: Column(children: [
-        Align(alignment: Alignment.centerRight, child: FilledButton.icon(onPressed: () => openPage(context, const ItemFormPage()), icon: const Icon(Icons.add), label: const Text('Add Item'))),
+        Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+                onPressed: () => openPage(context, const ItemFormPage()),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Item'))),
         const SizedBox(height: 8),
         if (r.isEmpty) const EmptyState('No inventory records.'),
-        ...r.map((x) => Card(elevation: 0, child: ListTile(
-          leading: const Icon(Icons.inventory_2_outlined, color: emerald),
-          title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w900)),
-          subtitle: Text('Code ${x['code']} • ${x['unit']} • Rent ${money(x['rentPrice'])}/day'),
-          trailing: Text('${x['quantity']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emeraldDark)),
-        )))
+        ...r.map((x) => Card(
+            elevation: 0,
+            child: ListTile(
+              leading: const Icon(Icons.inventory_2_outlined, color: emerald),
+              title: Text('${x['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w900)),
+              subtitle: Text(
+                  'Code ${x['code']} • ${x['unit']} • Rent ${money(x['rentPrice'])}/day'),
+              trailing: Text('${x['quantity']}',
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: emeraldDark)),
+            )))
       ]),
     );
   }
@@ -966,20 +1133,38 @@ class TransactionsPage extends StatelessWidget {
       child: Column(children: [
         const SectionTitle('ISSUED BILLS'),
         if (issues.isEmpty) const EmptyState('No issued bills yet.'),
-        ...issues.map((x) => Card(elevation: 0, child: ListTile(
-          leading: const Icon(Icons.outbox_rounded, color: emerald),
-          title: Text('${x['invoice']} • ${customerName('${x['customerId']}')}', style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('${x['date']} • ${(x['items'] as List? ?? []).length} item(s)'),
-          trailing: IconButton(tooltip: 'Print PDF', onPressed: () => printIssueBill(x), icon: const Icon(Icons.picture_as_pdf_rounded, color: emerald)),
-        ))),
+        ...issues.map((x) => Card(
+            elevation: 0,
+            child: ListTile(
+              leading: const Icon(Icons.outbox_rounded, color: emerald),
+              title: Text(
+                  '${x['invoice']} • ${customerName('${x['customerId']}')}',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(
+                  '${x['date']} • ${(x['items'] as List? ?? []).length} item(s)'),
+              trailing: IconButton(
+                  tooltip: 'Print PDF',
+                  onPressed: () => printIssueBill(x),
+                  icon:
+                      const Icon(Icons.picture_as_pdf_rounded, color: emerald)),
+            ))),
         const SectionTitle('RETURN RECEIPTS'),
         if (returns.isEmpty) const EmptyState('No return entries yet.'),
-        ...returns.map((x) => Card(elevation: 0, child: ListTile(
-          leading: const Icon(Icons.assignment_return_rounded, color: emerald),
-          title: Text('${x['returnInvoice'] ?? 'Return'} • ${customerName('${x['customerId']}')}', style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('${x['date']} • ${money(x['amount'])}'),
-          trailing: IconButton(tooltip: 'Print PDF', onPressed: () => printReturnBill(x), icon: const Icon(Icons.picture_as_pdf_rounded, color: emerald)),
-        ))),
+        ...returns.map((x) => Card(
+            elevation: 0,
+            child: ListTile(
+              leading:
+                  const Icon(Icons.assignment_return_rounded, color: emerald),
+              title: Text(
+                  '${x['returnInvoice'] ?? 'Return'} • ${customerName('${x['customerId']}')}',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text('${x['date']} • ${money(x['amount'])}'),
+              trailing: IconButton(
+                  tooltip: 'Print PDF',
+                  onPressed: () => printReturnBill(x),
+                  icon:
+                      const Icon(Icons.picture_as_pdf_rounded, color: emerald)),
+            ))),
       ]),
     );
   }
@@ -987,46 +1172,88 @@ class TransactionsPage extends StatelessWidget {
 
 Future<void> printIssueBill(Map<String, dynamic> bill) async {
   final doc = pw.Document();
-  final items = (bill['items'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-  final total = items.fold<double>(0, (s, x) => s + (double.tryParse('${x['rentPrice']}') ?? 0) * (int.tryParse('${x['qty']}') ?? 0) * (int.tryParse('${x['rentDays']}') ?? 1));
-  doc.addPage(pw.Page(build: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-    pw.Text('${store.shop['name'] ?? 'RentFlow'}', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
-    pw.Text('RENTAL ISSUE INVOICE'),
-    pw.SizedBox(height: 8),
-    pw.Text('Invoice: ${bill['invoice']}'),
-    pw.Text('Customer: ${customerName('${bill['customerId']}')}'),
-    pw.Text('Date: ${bill['date']}'),
-    pw.SizedBox(height: 12),
-    pw.Table.fromTextArray(headers: const ['Item', 'Qty', 'Rent/Day', 'Days', 'Amount'], data: items.map((x) {
-      final amount = (double.tryParse('${x['rentPrice']}') ?? 0) * (int.tryParse('${x['qty']}') ?? 0) * (int.tryParse('${x['rentDays']}') ?? 1);
-      return ['${x['name']}', '${x['qty']}', money(x['rentPrice']), '${x['rentDays']}', money(amount)];
-    }).toList()),
-    pw.SizedBox(height: 12),
-    pw.Text('Total Rent: ${money(total)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-    pw.SizedBox(height: 24),
-    pw.Text('By PaliaAPK HUB • Developer by shanpalia'),
-  ])));
+  final items = (bill['items'] as List? ?? [])
+      .map((e) => Map<String, dynamic>.from(e as Map))
+      .toList();
+  final total = items.fold<double>(
+      0,
+      (s, x) =>
+          s +
+          (double.tryParse('${x['rentPrice']}') ?? 0) *
+              (int.tryParse('${x['qty']}') ?? 0) *
+              (int.tryParse('${x['rentDays']}') ?? 1));
+  doc.addPage(pw.Page(
+      build: (_) =>
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('${store.shop['name'] ?? 'RentFlow'}',
+                style:
+                    pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+            pw.Text('RENTAL ISSUE INVOICE'),
+            pw.SizedBox(height: 8),
+            pw.Text('Invoice: ${bill['invoice']}'),
+            pw.Text('Customer: ${customerName('${bill['customerId']}')}'),
+            pw.Text('Date: ${bill['date']}'),
+            pw.SizedBox(height: 12),
+            pw.Table.fromTextArray(
+                headers: const ['Item', 'Qty', 'Rent/Day', 'Days', 'Amount'],
+                data: items.map((x) {
+                  final amount = (double.tryParse('${x['rentPrice']}') ?? 0) *
+                      (int.tryParse('${x['qty']}') ?? 0) *
+                      (int.tryParse('${x['rentDays']}') ?? 1);
+                  return [
+                    '${x['name']}',
+                    '${x['qty']}',
+                    money(x['rentPrice']),
+                    '${x['rentDays']}',
+                    money(amount)
+                  ];
+                }).toList()),
+            pw.SizedBox(height: 12),
+            pw.Text('Total Rent: ${money(total)}',
+                style:
+                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 24),
+            pw.Text('By PaliaAPK HUB • Developer by shanpalia'),
+          ])));
   await Printing.layoutPdf(onLayout: (_) async => doc.save());
 }
 
 Future<void> printReturnBill(Map<String, dynamic> bill) async {
   final doc = pw.Document();
-  final items = (bill['items'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-  doc.addPage(pw.Page(build: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-    pw.Text('${store.shop['name'] ?? 'RentFlow'}', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
-    pw.Text('RENTAL RETURN RECEIPT'),
-    pw.SizedBox(height: 8),
-    pw.Text('Return: ${bill['returnInvoice']}'),
-    pw.Text('Customer: ${customerName('${bill['customerId']}')}'),
-    pw.Text('Date: ${bill['date']}'),
-    pw.SizedBox(height: 12),
-    pw.Table.fromTextArray(headers: const ['Item', 'Returned Qty', 'Rent/Day', 'Days'], data: items.map((x) => ['${x['name']}', '${x['qty']}', money(x['rentPrice']), '${x['rentDays']}']).toList()),
-    pw.SizedBox(height: 12),
-    pw.Text('Return Amount: ${money(bill['amount'])}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-    if ('${bill['notes']}'.trim().isNotEmpty) pw.Text('Note: ${bill['notes']}'),
-    pw.SizedBox(height: 24),
-    pw.Text('By PaliaAPK HUB • Developer by shanpalia'),
-  ])));
+  final items = (bill['items'] as List? ?? [])
+      .map((e) => Map<String, dynamic>.from(e as Map))
+      .toList();
+  doc.addPage(pw.Page(
+      build: (_) =>
+          pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('${store.shop['name'] ?? 'RentFlow'}',
+                style:
+                    pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+            pw.Text('RENTAL RETURN RECEIPT'),
+            pw.SizedBox(height: 8),
+            pw.Text('Return: ${bill['returnInvoice']}'),
+            pw.Text('Customer: ${customerName('${bill['customerId']}')}'),
+            pw.Text('Date: ${bill['date']}'),
+            pw.SizedBox(height: 12),
+            pw.Table.fromTextArray(
+                headers: const ['Item', 'Returned Qty', 'Rent/Day', 'Days'],
+                data: items
+                    .map((x) => [
+                          '${x['name']}',
+                          '${x['qty']}',
+                          money(x['rentPrice']),
+                          '${x['rentDays']}'
+                        ])
+                    .toList()),
+            pw.SizedBox(height: 12),
+            pw.Text('Return Amount: ${money(bill['amount'])}',
+                style:
+                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            if ('${bill['notes']}'.trim().isNotEmpty)
+              pw.Text('Note: ${bill['notes']}'),
+            pw.SizedBox(height: 24),
+            pw.Text('By PaliaAPK HUB • Developer by shanpalia'),
+          ])));
   await Printing.layoutPdf(onLayout: (_) async => doc.save());
 }
 
@@ -1036,23 +1263,38 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) => PageFrame(
         title: 'Settings',
         child: Column(children: [
-          Card(elevation: 0, child: ListTile(
-            leading: const Icon(Icons.system_update_alt_rounded, color: emerald),
-            title: const Text('Check Update', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: const Text('Check the latest RentFlow version'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showDialog(context: context, builder: (_) => AlertDialog(
-              title: const Text('Check Update'),
-              content: const Text('You are using the current installed version.'),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-            )),
-          )),
+          Card(
+              elevation: 0,
+              child: ListTile(
+                leading:
+                    const Icon(Icons.system_update_alt_rounded, color: emerald),
+                title: const Text('Check Update',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: const Text('Check the latest RentFlow version'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                          title: const Text('Check Update'),
+                          content: const Text(
+                              'You are using the current installed version.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('OK'))
+                          ],
+                        )),
+              )),
           const SizedBox(height: 8),
-          const Card(elevation: 0, child: ListTile(
-            leading: Icon(Icons.info_outline, color: emerald),
-            title: Text('RentFlow', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text('Rental Management • By PaliaAPK HUB • Developer by shanpalia'),
-          )),
+          const Card(
+              elevation: 0,
+              child: ListTile(
+                leading: Icon(Icons.info_outline, color: emerald),
+                title: Text('RentFlow',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(
+                    'Rental Management • By PaliaAPK HUB • Developer by shanpalia'),
+              )),
         ]),
       );
 }
@@ -1064,7 +1306,12 @@ class FieldBox extends StatelessWidget {
   final int maxLines;
   final bool readOnly;
   final ValueChanged<String>? onChanged;
-  const FieldBox(this.label, this.controller, {super.key, this.keyboard, this.maxLines = 1, this.readOnly = false, this.onChanged});
+  const FieldBox(this.label, this.controller,
+      {super.key,
+      this.keyboard,
+      this.maxLines = 1,
+      this.readOnly = false,
+      this.onChanged});
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -1083,7 +1330,8 @@ class PrimaryButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final VoidCallback onPressed;
-  const PrimaryButton({super.key, required this.label, required this.onPressed, this.icon});
+  const PrimaryButton(
+      {super.key, required this.label, required this.onPressed, this.icon});
   @override
   Widget build(BuildContext context) => SizedBox(
         width: double.infinity,
@@ -1092,11 +1340,14 @@ class PrimaryButton extends StatelessWidget {
             backgroundColor: emeraldDark,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           ),
           onPressed: onPressed,
           icon: Icon(icon ?? Icons.save_outlined),
-          label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          label: Text(label,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         ),
       );
 }
@@ -1106,17 +1357,26 @@ class DataRowCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const DataRowCard({super.key, required this.title, required this.subtitle, required this.onEdit, required this.onDelete});
+  const DataRowCard(
+      {super.key,
+      required this.title,
+      required this.subtitle,
+      required this.onEdit,
+      required this.onDelete});
   @override
   Widget build(BuildContext context) => Card(
         elevation: 0,
         margin: const EdgeInsets.only(bottom: 10),
         child: ListTile(
           leading: const Icon(Icons.inventory_2_outlined, color: emerald),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
           subtitle: Text(subtitle),
           trailing: PopupMenuButton<String>(
-            onSelected: (v) { if (v == 'edit') onEdit(); if (v == 'delete') onDelete(); },
+            onSelected: (v) {
+              if (v == 'edit') onEdit();
+              if (v == 'delete') onDelete();
+            },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'edit', child: Text('Edit')),
               PopupMenuItem(value: 'delete', child: Text('Delete')),
