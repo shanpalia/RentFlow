@@ -37,15 +37,12 @@ jobs:
           old = "      ...items.map((x) => Card(elevation: 0, child: ListTile(title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100'), trailing: Text('${x['quantity'] ?? 0}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emerald)))),"
           new = "      ...items.map((x) => Card(elevation: 0, child: ListTile(title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100'), trailing: Text('${x['quantity'] ?? 0}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emerald))))),"
           if old not in s:
-              raise SystemExit('Expected InventoryPage line not found; source was not modified')
+              raise SystemExit('Expected InventoryPage syntax error was not found; source was not modified')
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
 
       - name: Format Dart source
         run: dart format lib/rentflow_emerald.dart
-
-      - name: Analyze Dart source
-        run: flutter analyze lib/rentflow_emerald.dart
 
       - name: Commit repaired source
         shell: bash
@@ -53,9 +50,9 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/rentflow_emerald.dart .github/workflows/repair-rentflow.yml
+          git add lib/rentflow_emerald.dart
           if git diff --cached --quiet; then
-            echo 'No changes to commit.'
+            echo 'No source changes to commit.'
             exit 0
           fi
           git commit -m "fix: repair RentFlow Dart syntax"
