@@ -93,8 +93,8 @@ class RentDb extends ChangeNotifier {
 
 final db = RentDb();
 
-void openPage(BuildContext context, Widget page) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+Future<void> openPage(BuildContext context, Widget page) async {
+  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 }
 
 void snack(BuildContext context, String text) {
