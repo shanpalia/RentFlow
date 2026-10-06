@@ -45,9 +45,9 @@ class RentDb extends ChangeNotifier {
       final raw = jsonDecode(prefs!.getString('rentflow_data') ?? '[]');
       shops = raw is List
           ? raw
-                .whereType<Map>()
-                .map((e) => Map<String, dynamic>.from(e))
-                .toList()
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList()
           : <Map<String, dynamic>>[];
     } catch (_) {
       shops = <Map<String, dynamic>>[];
@@ -681,16 +681,16 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(28),
-    child: Text(
-      text,
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: Colors.black54,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
+        padding: const EdgeInsets.all(28),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
 }
 
 class ShopPage extends StatefulWidget {
@@ -840,30 +840,41 @@ class _ItemFormState extends State<ItemForm> {
 
   @override
   Widget build(BuildContext context) => Frame(
-    'Add / Edit Item',
-    Column(
-      children: [
-        Field('Item Name', name),
-        Field('Item Code', code),
-        Field('Stock Quantity', qty, keyboard: TextInputType.number),
-        Field(
-          'Rent Price / 100',
-          rent,
-          keyboard: const TextInputType.numberWithOptions(decimal: true),
-        ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Example: ₹15 per 100 • rent is calculated on returned quantity and numeric rent days.',
+        'Add / Edit Item',
+        Column(
+          children: [
+            Field('Item Name', name),
+            Field('Item Code', code),
+            Field('Stock Quantity', qty, keyboard: TextInputType.number),
+            Field(
+              'Rent Price / 100',
+              rent,
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
             ),
-          ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: rent,
+              builder: (_, value, __) {
+                final rate100 = numDouble(value.text);
+                final unitRate = rate100 / 100;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${money(rate100)} / 100 = ${money(unitRate)} / unit',
+                      style: const TextStyle(
+                        color: emeraldDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            SaveButton('Save Item', save),
+          ],
         ),
-        SaveButton('Save Item', save),
-      ],
-    ),
-  );
+      );
 }
 
 class ItemsPage extends StatelessWidget {
@@ -897,31 +908,31 @@ class ItemsPage extends StatelessWidget {
           if (items.isEmpty)
             const EmptyState('No items yet. Tap + to add an item.'),
           ...items.asMap().entries.map(
-            (e) => Card(
-              elevation: 0,
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: emeraldSoft,
-                  child: Icon(Icons.inventory_2_rounded, color: emerald),
-                ),
-                title: Text(
-                  '${e.value['name']}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                subtitle: Text(
-                  'Code ${e.value['code'] ?? ''} • Rent ${money(e.value['rentPrice'])}/100',
-                ),
-                trailing: Text(
-                  '${e.value['quantity'] ?? 0}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                (e) => Card(
+                  elevation: 0,
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: emeraldSoft,
+                      child: Icon(Icons.inventory_2_rounded, color: emerald),
+                    ),
+                    title: Text(
+                      '${e.value['name']}',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      'Code ${e.value['code'] ?? ''} • Rent ${money(e.value['rentPrice'])}/100',
+                    ),
+                    trailing: Text(
+                      '${e.value['quantity'] ?? 0}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    onTap: () => openPage(context, ItemForm(index: e.key)),
                   ),
                 ),
-                onTap: () => openPage(context, ItemForm(index: e.key)),
               ),
-            ),
-          ),
         ],
       ),
     );
@@ -980,16 +991,16 @@ class _CustomerFormState extends State<CustomerForm> {
 
   @override
   Widget build(BuildContext context) => Frame(
-    'Add / Edit Party',
-    Column(
-      children: [
-        Field('Party / Customer Name', name),
-        Field('Mobile', mobile, keyboard: TextInputType.phone),
-        Field('Address', address, maxLines: 3),
-        SaveButton('Save Customer', save),
-      ],
-    ),
-  );
+        'Add / Edit Party',
+        Column(
+          children: [
+            Field('Party / Customer Name', name),
+            Field('Mobile', mobile, keyboard: TextInputType.phone),
+            Field('Address', address, maxLines: 3),
+            SaveButton('Save Customer', save),
+          ],
+        ),
+      );
 }
 
 class CustomersPage extends StatelessWidget {
@@ -1022,21 +1033,21 @@ class CustomersPage extends StatelessWidget {
           ),
           if (a.isEmpty) const EmptyState('No parties. Tap + to add.'),
           ...a.asMap().entries.map(
-            (e) => Card(
-              elevation: 0,
-              child: ListTile(
-                leading: const Icon(Icons.person_rounded, color: emerald),
-                title: Text(
-                  '${e.value['name']}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                (e) => Card(
+                  elevation: 0,
+                  child: ListTile(
+                    leading: const Icon(Icons.person_rounded, color: emerald),
+                    title: Text(
+                      '${e.value['name']}',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: Text(
+                      '${e.value['mobile'] ?? ''}\n${e.value['address'] ?? ''}',
+                    ),
+                    onTap: () => openPage(context, CustomerForm(index: e.key)),
+                  ),
                 ),
-                subtitle: Text(
-                  '${e.value['mobile'] ?? ''}\n${e.value['address'] ?? ''}',
-                ),
-                onTap: () => openPage(context, CustomerForm(index: e.key)),
               ),
-            ),
-          ),
         ],
       ),
     );
@@ -1268,9 +1279,8 @@ class _ReturnState extends State<ReturnPage> {
   Widget build(BuildContext context) {
     final customers = db.records('customers');
     final issues = db.records('issues');
-    final items = issue == null
-        ? <Map<String, dynamic>>[]
-        : maps(issue!['items']);
+    final items =
+        issue == null ? <Map<String, dynamic>>[] : maps(issue!['items']);
     return Frame(
       'Return / Receive',
       Column(
@@ -1381,7 +1391,8 @@ class ReturnItemCard extends StatelessWidget {
     final max = numInt(item['qty']);
     final r = numDouble(item['rentPrice'] ?? 15);
     final days = rentDays(issueDate, today());
-    final amount = r * selectedQty * days / 100;
+    final unitRate = r / 100;
+    final amount = unitRate * selectedQty * days;
     return Card(
       elevation: 0,
       color: selectedQty > 0 ? emeraldSoft : Colors.white,
@@ -1402,9 +1413,11 @@ class ReturnItemCard extends StatelessWidget {
                     '${item['name']}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  Text('Issued Qty $max • Rent ${money(r)}/100'),
                   Text(
-                    'Rent Days $days • Amount ${money(amount)}',
+                    'Issued Qty $max • Rent ${money(r)} / 100 = ${money(unitRate)} / unit',
+                  ),
+                  Text(
+                    'Rent Days $days • ${money(r)} / 100 = ${money(unitRate)} / unit • Amount ${money(amount)}',
                     style: const TextStyle(
                       color: emeraldDark,
                       fontWeight: FontWeight.w800,
@@ -1586,15 +1599,15 @@ class PdfPreviewPage extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(title)),
-    body: PdfPreview(
-      build: (format) => document.save(),
-      canChangeOrientation: false,
-      canChangePageFormat: false,
-      allowPrinting: true,
-      allowSharing: true,
-    ),
-  );
+        appBar: AppBar(title: Text(title)),
+        body: PdfPreview(
+          build: (format) => document.save(),
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          allowPrinting: true,
+          allowSharing: true,
+        ),
+      );
 }
 
 class BillsPage extends StatelessWidget {
@@ -1683,37 +1696,37 @@ class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
   @override
   Widget build(BuildContext context) => Frame(
-    'Settings / About',
-    Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          elevation: 0,
-          child: ListTile(
-            leading: const Icon(Icons.store_rounded, color: emerald),
-            title: Text(
-              '${db.shop['name'] ?? 'RentFlow'}',
-              style: const TextStyle(fontWeight: FontWeight.w900),
+        'Settings / About',
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Card(
+              elevation: 0,
+              child: ListTile(
+                leading: const Icon(Icons.store_rounded, color: emerald),
+                title: Text(
+                  '${db.shop['name'] ?? 'RentFlow'}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: const Text('Shop / Company information'),
+                trailing: const Icon(Icons.chevron_right),
+              ),
             ),
-            subtitle: const Text('Shop / Company information'),
-            trailing: const Icon(Icons.chevron_right),
-          ),
+            const SizedBox(height: 8),
+            const Card(
+              elevation: 0,
+              child: ListTile(
+                leading: Icon(Icons.info_outline_rounded, color: emerald),
+                title: Text(
+                  'RentFlow',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  'Rental management • Bills • Inventory • Returns\nBy PaliaAPK HUB • Developer by shanpalia',
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        const Card(
-          elevation: 0,
-          child: ListTile(
-            leading: Icon(Icons.info_outline_rounded, color: emerald),
-            title: Text(
-              'RentFlow',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              'Rental management • Bills • Inventory • Returns\nBy PaliaAPK HUB • Developer by shanpalia',
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 }
