@@ -21,6 +21,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.6'
           channel: stable
           cache: true
 
@@ -48,25 +49,7 @@ jobs:
           gradle -p android wrapper --gradle-version 8.14.3
           chmod +x android/gradlew
 
-      - name: Restore RentFlow source after repair commit
-        if: github.event.before == '49fc3db34c6d84a841d73b2929191cff21b41270'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git checkout efa9e558965a98f8ca18bcd3465b8dd4ca490b0e -- lib/rentflow_emerald.dart
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('lib/rentflow_emerald.dart')
-          s = p.read_text()
-          old = "      );\n\nclass HomePage extends StatefulWidget {"
-          new = "      );\n}\n\nclass HomePage extends StatefulWidget {"
-          if old not in s:
-              raise SystemExit('Expected AppDrawer/HomePage boundary not found')
-          p.write_text(s.replace(old, new, 1))
-          PY
-          rm -f .github/workflows/repair-rentflow.yml
-
-      - name: Verify project
+      - name: Verify project files
         shell: bash
         run: |
           set -euo pipefail
@@ -80,18 +63,22 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Format Dart source
+      - name: Format Dart source and capture diagnostics
         shell: bash
         run: |
-          set -euo pipefail
-          dart format lib
-          if ! git diff --quiet -- lib .github/workflows/repair-rentflow.yml; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add lib .github/workflows/repair-rentflow.yml
-            git commit -m "fix: restore RentFlow source"
-            git push
-          fi
+          set +e
+          dart format lib 2>&1 | tee format.log
+          status=${PIPESTATUS[0]}
+          exit "$status"
+
+      - name: Upload format diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rentflow-format-diagnostics
+          path: format.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Verify formatted Dart source
         run: dart format --output=none --set-exit-if-changed lib
