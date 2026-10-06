@@ -850,7 +850,7 @@ class _IssueRow extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: index.isEven ? lineColor : emerald.withAlpha(55))),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: lineColor(index))),
       child: LayoutBuilder(builder: (_, c) {
         final compact = c.maxWidth < 720;
         final fields = <Widget>[
@@ -874,7 +874,7 @@ class _IssueRow extends StatelessWidget {
   }
 }
 
-Color lineColor(int index) => index.isEven ? line : emerald.withAlpha(55);
+Color lineColor(int index) => const Color(0xFFD8E5E1);
 
 class ReturnPage extends StatefulWidget {
   const ReturnPage({super.key});
