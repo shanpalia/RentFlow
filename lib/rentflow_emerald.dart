@@ -1331,7 +1331,7 @@ class _ReturnState extends State<ReturnPage> {
                 .map(
                   (x) => DropdownMenuItem(
                     value: '${x['id']}',
-                    child: Text('${x['invoice']} • ${x['issueDate']}'),
+                    child: Text('${x['invoice']}'),
                   ),
                 )
                 .toList(),
