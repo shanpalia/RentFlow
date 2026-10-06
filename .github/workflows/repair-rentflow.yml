@@ -56,10 +56,15 @@ jobs:
           if old in s:
               s = s.replace(old, new, 1)
 
-          # Return screen: keep Party and Issued Invoice selection, but do not
-          # show Return No., Issued Date or Return Date fields/text.
+          # Return screen: Party is the only party/date header information.
+          # Issued Invoice remains selectable, but its list no longer shows a date.
           old = '''          if (issue != null) ...[\n            const SizedBox(height: 12),\n            Text(\n              'Issued date: ${issue!['issueDate']} • Return date: ${today()}',\n              style: const TextStyle(fontWeight: FontWeight.w800),\n            ),\n            const SizedBox(height: 8),'''
           new = '''          if (issue != null) ...[\n            const SizedBox(height: 12),'''
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          old = "                    child: Text('${x['invoice']} • ${x['issueDate']}'),"
+          new = "                    child: Text('${x['invoice']}'),"
           if old in s:
               s = s.replace(old, new, 1)
 
@@ -89,5 +94,5 @@ jobs:
             echo 'No source changes to commit.'
             exit 0
           fi
-          git commit -m "fix: finalize RentFlow returns calculation UI"
+          git commit -m "fix: hide return dates and clarify rental rate"
           git push
