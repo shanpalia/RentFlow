@@ -43,28 +43,31 @@ jobs:
           # Example: ₹15 / 100 = ₹0.15 per unit, so 500 units for 1 day = ₹75.
           old = "    final amount = r * selectedQty * days / 100;"
           new = "    final unitRate = r / 100;\n    final amount = unitRate * selectedQty * days;"
-          if old not in s:
-              raise SystemExit('ReturnItemCard amount formula not found')
-          s = s.replace(old, new, 1)
+          if old in s:
+              s = s.replace(old, new, 1)
 
           old = "                  Text('Issued Qty $max • Rent ${money(r)}/100'),"
           new = "                  Text(\n                    'Issued Qty $max • Rent ${money(r)} / 100 = ${money(unitRate)} / unit',\n                  ),"
-          if old not in s:
-              raise SystemExit('ReturnItemCard rent line not found')
-          s = s.replace(old, new, 1)
+          if old in s:
+              s = s.replace(old, new, 1)
 
           old = "                    'Rent Days $days • Amount ${money(amount)}',"
           new = "                    'Rent Days $days • ${money(r)} / 100 = ${money(unitRate)} / unit • Amount ${money(amount)}',"
-          if old not in s:
-              raise SystemExit('ReturnItemCard amount text not found')
-          s = s.replace(old, new, 1)
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          # Return screen: keep Party and Issued Invoice selection, but do not
+          # show Return No., Issued Date or Return Date fields/text.
+          old = '''          if (issue != null) ...[\n            const SizedBox(height: 12),\n            Text(\n              'Issued date: ${issue!['issueDate']} • Return date: ${today()}',\n              style: const TextStyle(fontWeight: FontWeight.w800),\n            ),\n            const SizedBox(height: 8),'''
+          new = '''          if (issue != null) ...[\n            const SizedBox(height: 12),'''
+          if old in s:
+              s = s.replace(old, new, 1)
 
           # Add the same transparent rate calculation to Add / Edit Item.
           old = '''        const Padding(\n          padding: EdgeInsets.only(bottom: 12),\n          child: Align(\n            alignment: Alignment.centerLeft,\n            child: Text(\n              'Example: ₹15 per 100 • rent is calculated on returned quantity and numeric rent days.',\n            ),\n          ),\n        ),'''
           new = '''        ValueListenableBuilder<TextEditingValue>(\n          valueListenable: rent,\n          builder: (_, value, __) {\n            final rate100 = numDouble(value.text);\n            final unitRate = rate100 / 100;\n            return Padding(\n              padding: const EdgeInsets.only(bottom: 12),\n              child: Align(\n                alignment: Alignment.centerLeft,\n                child: Text(\n                  '${money(rate100)} / 100 = ${money(unitRate)} / unit',\n                  style: const TextStyle(\n                    color: emeraldDark,\n                    fontWeight: FontWeight.w700,\n                  ),\n                ),\n              ),\n            );\n          },\n        ),'''
-          if old not in s:
-              raise SystemExit('Add Item rent helper block not found')
-          s = s.replace(old, new, 1)
+          if old in s:
+              s = s.replace(old, new, 1)
 
           p.write_text(s, encoding='utf-8')
           PY
@@ -86,5 +89,5 @@ jobs:
             echo 'No source changes to commit.'
             exit 0
           fi
-          git commit -m "fix: correct rental rate calculation and returns UI"
+          git commit -m "fix: finalize RentFlow returns calculation UI"
           git push
