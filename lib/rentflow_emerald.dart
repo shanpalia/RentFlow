@@ -1346,11 +1346,6 @@ class _ReturnState extends State<ReturnPage> {
           ),
           if (issue != null) ...[
             const SizedBox(height: 12),
-            Text(
-              'Issued date: ${issue!['issueDate']} • Return date: ${today()}',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
             ...items.map(
               (x) => ReturnItemCard(
                 item: x,
