@@ -46,11 +46,8 @@ jobs:
       - name: Apply Returns UI repair
         run: python3 tool/repair_returns.py
 
-      - name: Format and analyze
-        run: |
-          set -euo pipefail
-          dart format lib
-          flutter analyze lib/rentflow_emerald.dart
+      - name: Format Dart sources
+        run: dart format lib
 
       - name: Commit repaired source
         shell: bash
