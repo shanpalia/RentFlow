@@ -17,7 +17,8 @@ const line = Color(0xFFD8E5E1);
 
 String uid() => DateTime.now().microsecondsSinceEpoch.toString();
 String today() => DateTime.now().toIso8601String().substring(0, 10);
-String money(dynamic v) => '₹${(double.tryParse('$v') ?? 0).toStringAsFixed(2)}';
+String money(dynamic v) =>
+    '₹${(double.tryParse('$v') ?? 0).toStringAsFixed(2)}';
 int numInt(dynamic v) => int.tryParse('$v') ?? 0;
 double numDouble(dynamic v) => double.tryParse('$v') ?? 0;
 List<Map<String, dynamic>> maps(dynamic v) => v is List
@@ -35,14 +36,18 @@ class RentDb extends ChangeNotifier {
   List<Map<String, dynamic>> shops = <Map<String, dynamic>>[];
   int active = 0;
   bool get ready => prefs != null;
-  Map<String, dynamic> get shop => shops.isEmpty ? <String, dynamic>{} : shops[active];
+  Map<String, dynamic> get shop =>
+      shops.isEmpty ? <String, dynamic>{} : shops[active];
 
   Future<void> load() async {
     prefs = await SharedPreferences.getInstance();
     try {
       final raw = jsonDecode(prefs!.getString('rentflow_data') ?? '[]');
       shops = raw is List
-          ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+          ? raw
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList()
           : <Map<String, dynamic>>[];
     } catch (_) {
       shops = <Map<String, dynamic>>[];
@@ -61,7 +66,13 @@ class RentDb extends ChangeNotifier {
   List<Map<String, dynamic>> records(String key) => maps(shop[key]);
 
   Future<void> addShop(Map<String, dynamic> data) async {
-    shops.add({...data, 'items': [], 'customers': [], 'issues': [], 'returns': []});
+    shops.add({
+      ...data,
+      'items': [],
+      'customers': [],
+      'issues': [],
+      'returns': [],
+    });
     active = shops.length - 1;
     await save();
   }
@@ -193,14 +204,42 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = <Map<String, dynamic>>[
       {'t': 'Dashboard', 'i': Icons.dashboard_rounded, 'p': const HomePage()},
-      {'t': 'Inventory', 'i': Icons.inventory_2_rounded, 'p': const ItemsPage()},
-      {'t': 'Customers / Parties', 'i': Icons.people_alt_rounded, 'p': const CustomersPage()},
-      {'t': 'Issued / New Invoice', 'i': Icons.outbox_rounded, 'p': const IssuePage()},
-      {'t': 'Returns', 'i': Icons.assignment_return_rounded, 'p': const ReturnPage()},
-      {'t': 'Inventory Register', 'i': Icons.table_rows_rounded, 'p': const InventoryPage()},
-      {'t': 'Reports / Bills', 'i': Icons.receipt_long_rounded, 'p': const BillsPage()},
+      {
+        't': 'Inventory',
+        'i': Icons.inventory_2_rounded,
+        'p': const ItemsPage(),
+      },
+      {
+        't': 'Customers / Parties',
+        'i': Icons.people_alt_rounded,
+        'p': const CustomersPage(),
+      },
+      {
+        't': 'Issued / New Invoice',
+        'i': Icons.outbox_rounded,
+        'p': const IssuePage(),
+      },
+      {
+        't': 'Returns',
+        'i': Icons.assignment_return_rounded,
+        'p': const ReturnPage(),
+      },
+      {
+        't': 'Inventory Register',
+        'i': Icons.table_rows_rounded,
+        'p': const InventoryPage(),
+      },
+      {
+        't': 'Reports / Bills',
+        'i': Icons.receipt_long_rounded,
+        'p': const BillsPage(),
+      },
       {'t': 'Shop / Company', 'i': Icons.store_rounded, 'p': const ShopPage()},
-      {'t': 'Settings / About', 'i': Icons.settings_rounded, 'p': const SettingsPage()},
+      {
+        't': 'Settings / About',
+        'i': Icons.settings_rounded,
+        'p': const SettingsPage(),
+      },
     ];
     return Drawer(
       child: SafeArea(
@@ -210,7 +249,11 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  SvgPicture.asset('assets/rentflow_logo.svg', width: 48, height: 48),
+                  SvgPicture.asset(
+                    'assets/rentflow_logo.svg',
+                    width: 48,
+                    height: 48,
+                  ),
                   const SizedBox(width: 12),
                   const Text(
                     'RentFlow\nPaliaAPK HUB',
@@ -226,7 +269,10 @@ class AppDrawer extends StatelessWidget {
                     .map(
                       (e) => ListTile(
                         leading: Icon(e['i'] as IconData, color: emerald),
-                        title: Text(e['t'] as String, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        title: Text(
+                          e['t'] as String,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                         onTap: () => go(context, e['p'] as Widget),
                       ),
                     )
@@ -237,7 +283,10 @@ class AppDrawer extends StatelessWidget {
               padding: EdgeInsets.all(16),
               child: Text(
                 'By PaliaAPK HUB • Developer by shanpalia',
-                style: TextStyle(color: Colors.black45, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: Colors.black45,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -262,7 +311,8 @@ class _HomeState extends State<HomePage> {
     db.load();
   }
 
-  Widget action(String title, IconData icon, VoidCallback onTap) => ActionCard(title, icon, onTap);
+  Widget action(String title, IconData icon, VoidCallback onTap) =>
+      ActionCard(title, icon, onTap);
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +320,9 @@ class _HomeState extends State<HomePage> {
       animation: db,
       builder: (_, __) {
         if (!db.ready) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator(color: emerald)));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: emerald)),
+          );
         }
         return Scaffold(
           appBar: const Header(),
@@ -280,7 +332,10 @@ class _HomeState extends State<HomePage> {
             children: [
               ShopInfoCard(onEdit: () => openPage(context, const ShopPage())),
               const SizedBox(height: 18),
-              const Text('Quick Actions', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              const Text(
+                'Quick Actions',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 10),
               GridView.count(
                 shrinkWrap: true,
@@ -290,27 +345,66 @@ class _HomeState extends State<HomePage> {
                 crossAxisSpacing: 10,
                 childAspectRatio: 1.45,
                 children: [
-                  action('New Invoice', Icons.receipt_long_rounded, () => openPage(context, const IssuePage())),
-                  action('Return', Icons.assignment_return_rounded, () => openPage(context, const ReturnPage())),
-                  action('Add Item', Icons.add_box_rounded, () => openPage(context, const ItemForm())),
-                  action('Add Customer', Icons.person_add_rounded, () => openPage(context, const CustomerForm())),
-                  action('Inventory', Icons.inventory_2_rounded, () => openPage(context, const ItemsPage())),
-                  action('Reports / Bills', Icons.picture_as_pdf_rounded, () => openPage(context, const BillsPage())),
+                  action(
+                    'New Invoice',
+                    Icons.receipt_long_rounded,
+                    () => openPage(context, const IssuePage()),
+                  ),
+                  action(
+                    'Return',
+                    Icons.assignment_return_rounded,
+                    () => openPage(context, const ReturnPage()),
+                  ),
+                  action(
+                    'Add Item',
+                    Icons.add_box_rounded,
+                    () => openPage(context, const ItemForm()),
+                  ),
+                  action(
+                    'Add Customer',
+                    Icons.person_add_rounded,
+                    () => openPage(context, const CustomerForm()),
+                  ),
+                  action(
+                    'Inventory',
+                    Icons.inventory_2_rounded,
+                    () => openPage(context, const ItemsPage()),
+                  ),
+                  action(
+                    'Reports / Bills',
+                    Icons.picture_as_pdf_rounded,
+                    () => openPage(context, const BillsPage()),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
               Row(
                 children: [
-                  StatCard('Items', db.records('items').length, Icons.inventory_2_rounded),
-                  StatCard('Parties', db.records('customers').length, Icons.people_alt_rounded),
-                  StatCard('Issued', db.records('issues').length, Icons.outbox_rounded),
+                  StatCard(
+                    'Items',
+                    db.records('items').length,
+                    Icons.inventory_2_rounded,
+                  ),
+                  StatCard(
+                    'Parties',
+                    db.records('customers').length,
+                    Icons.people_alt_rounded,
+                  ),
+                  StatCard(
+                    'Issued',
+                    db.records('issues').length,
+                    Icons.outbox_rounded,
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
               const Center(
                 child: Text(
                   'RentFlow • By PaliaAPK HUB • Developer by shanpalia',
-                  style: TextStyle(color: Colors.black45, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.black45,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -325,11 +419,27 @@ class _HomeState extends State<HomePage> {
               if (v == 4) openPage(context, const SettingsPage());
             },
             destinations: const [
-              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-              NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'Inventory'),
-              NavigationDestination(icon: Icon(Icons.outbox_outlined), label: 'Issued'),
-              NavigationDestination(icon: Icon(Icons.assignment_return_outlined), label: 'Returns'),
-              NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'About'),
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.inventory_2_outlined),
+                label: 'Inventory',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.outbox_outlined),
+                label: 'Issued',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.assignment_return_outlined),
+                label: 'Returns',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                label: 'About',
+              ),
             ],
           ),
         );
@@ -347,7 +457,10 @@ class ShopInfoCard extends StatelessWidget {
     final image = '${db.shop['image'] ?? ''}';
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: line)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: line),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -356,9 +469,20 @@ class ShopInfoCard extends StatelessWidget {
               width: 68,
               height: 68,
               clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(color: emeraldSoft, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: emeraldSoft,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: image.isNotEmpty
-                  ? Image.file(File(image), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.store_rounded, color: emerald, size: 34))
+                  ? Image.file(
+                      File(image),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.store_rounded,
+                        color: emerald,
+                        size: 34,
+                      ),
+                    )
                   : const Icon(Icons.store_rounded, color: emerald, size: 34),
             ),
             const SizedBox(width: 14),
@@ -366,13 +490,30 @@ class ShopInfoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${db.shop['name'] ?? 'Register your shop'}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                  Text('${db.shop['owner'] ?? ''}  ${db.shop['mobile'] ?? ''}', style: const TextStyle(color: Colors.black54)),
-                  Text('${db.shop['address'] ?? 'Add your shop information'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
+                  Text(
+                    '${db.shop['name'] ?? 'Register your shop'}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    '${db.shop['owner'] ?? ''}  ${db.shop['mobile'] ?? ''}',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                  Text(
+                    '${db.shop['address'] ?? 'Add your shop information'}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
                 ],
               ),
             ),
-            IconButton(onPressed: onEdit, icon: const Icon(Icons.edit_outlined, color: emerald)),
+            IconButton(
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined, color: emerald),
+            ),
           ],
         ),
       ),
@@ -396,7 +537,13 @@ class StatCard extends StatelessWidget {
           child: Column(
             children: [
               Icon(icon, color: emerald),
-              Text('$count', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               Text(title, style: const TextStyle(color: Colors.black54)),
             ],
           ),
@@ -416,7 +563,10 @@ class ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: line)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: line),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
@@ -445,8 +595,22 @@ class Frame extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: ink)),
-          Container(height: 4, margin: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(color: emerald, borderRadius: BorderRadius.circular(5))),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: ink,
+            ),
+          ),
+          Container(
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: emerald,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
           child,
         ],
       ),
@@ -459,13 +623,24 @@ class Field extends StatelessWidget {
   final TextEditingController controller;
   final int maxLines;
   final TextInputType? keyboard;
-  const Field(this.label, this.controller, {super.key, this.maxLines = 1, this.keyboard});
+  const Field(
+    this.label,
+    this.controller, {
+    super.key,
+    this.maxLines = 1,
+    this.keyboard,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(controller: controller, maxLines: maxLines, keyboardType: keyboard, decoration: InputDecoration(labelText: label)),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: keyboard,
+        decoration: InputDecoration(labelText: label),
+      ),
     );
   }
 }
@@ -474,7 +649,12 @@ class SaveButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final IconData icon;
-  const SaveButton(this.label, this.onPressed, {super.key, this.icon = Icons.save_rounded});
+  const SaveButton(
+    this.label,
+    this.onPressed, {
+    super.key,
+    this.icon = Icons.save_rounded,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -483,7 +663,13 @@ class SaveButton extends StatelessWidget {
       child: FilledButton.icon(
         onPressed: onPressed,
         icon: Icon(icon),
-        label: Padding(padding: const EdgeInsets.all(12), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800))),
+        label: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
       ),
     );
   }
@@ -494,7 +680,17 @@ class EmptyState extends StatelessWidget {
   const EmptyState(this.text, {super.key});
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.all(28), child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(28),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.black54,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }
 
 class ShopPage extends StatefulWidget {
@@ -522,16 +718,29 @@ class _ShopState extends State<ShopPage> {
 
   @override
   void dispose() {
-    name.dispose(); owner.dispose(); mobile.dispose(); address.dispose(); super.dispose();
+    name.dispose();
+    owner.dispose();
+    mobile.dispose();
+    address.dispose();
+    super.dispose();
   }
 
   Future<void> pickImage() async {
-    final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final x = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
     if (x != null) setState(() => image = x.path);
   }
 
   Future<void> save() async {
-    final data = {'name': name.text.trim(), 'owner': owner.text.trim(), 'mobile': mobile.text.trim(), 'address': address.text.trim(), 'image': image ?? ''};
+    final data = {
+      'name': name.text.trim(),
+      'owner': owner.text.trim(),
+      'mobile': mobile.text.trim(),
+      'address': address.text.trim(),
+      'image': image ?? '',
+    };
     if (db.shops.isEmpty) {
       await db.addShop(data);
     } else {
@@ -542,25 +751,36 @@ class _ShopState extends State<ShopPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Frame('Shop / Company', Column(children: [
-      Center(
-        child: GestureDetector(
-          onTap: pickImage,
-          child: CircleAvatar(
-            radius: 48,
-            backgroundColor: emeraldSoft,
-            backgroundImage: image == null ? null : FileImage(File(image!)),
-            child: image == null ? const Icon(Icons.add_a_photo_rounded, color: emerald, size: 32) : null,
+    return Frame(
+      'Shop / Company',
+      Column(
+        children: [
+          Center(
+            child: GestureDetector(
+              onTap: pickImage,
+              child: CircleAvatar(
+                radius: 48,
+                backgroundColor: emeraldSoft,
+                backgroundImage: image == null ? null : FileImage(File(image!)),
+                child: image == null
+                    ? const Icon(
+                        Icons.add_a_photo_rounded,
+                        color: emerald,
+                        size: 32,
+                      )
+                    : null,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          Field('Shop / Company Name', name),
+          Field('Owner Name', owner),
+          Field('Mobile', mobile, keyboard: TextInputType.phone),
+          Field('Address', address, maxLines: 3),
+          SaveButton('Save Shop Information', save),
+        ],
       ),
-      const SizedBox(height: 16),
-      Field('Shop / Company Name', name),
-      Field('Owner Name', owner),
-      Field('Mobile', mobile, keyboard: TextInputType.phone),
-      Field('Address', address, maxLines: 3),
-      SaveButton('Save Shop Information', save),
-    ]));
+    );
   }
 }
 
@@ -582,24 +802,68 @@ class _ItemFormState extends State<ItemForm> {
     super.initState();
     if (widget.index != null) {
       final x = db.records('items')[widget.index!];
-      name.text = '${x['name'] ?? ''}'; code.text = '${x['code'] ?? ''}'; qty.text = '${x['quantity'] ?? 0}'; rent.text = '${x['rentPrice'] ?? 15}';
+      name.text = '${x['name'] ?? ''}';
+      code.text = '${x['code'] ?? ''}';
+      qty.text = '${x['quantity'] ?? 0}';
+      rent.text = '${x['rentPrice'] ?? 15}';
     }
   }
 
   @override
-  void dispose() { name.dispose(); code.dispose(); qty.dispose(); rent.dispose(); super.dispose(); }
+  void dispose() {
+    name.dispose();
+    code.dispose();
+    qty.dispose();
+    rent.dispose();
+    super.dispose();
+  }
 
   Future<void> save() async {
-    final data = {'id': widget.index == null ? uid() : db.records('items')[widget.index!]['id'], 'name': name.text.trim(), 'code': code.text.trim(), 'quantity': numInt(qty.text), 'rentPrice': numDouble(rent.text)};
+    final data = {
+      'id': widget.index == null
+          ? uid()
+          : db.records('items')[widget.index!]['id'],
+      'name': name.text.trim(),
+      'code': code.text.trim(),
+      'quantity': numInt(qty.text),
+      'rentPrice': numDouble(rent.text),
+    };
     final list = db.shop['items'] as List? ?? <dynamic>[];
-    if (widget.index == null) list.add(data); else list[widget.index!] = data;
+    if (widget.index == null)
+      list.add(data);
+    else
+      list[widget.index!] = data;
     db.shop['items'] = list;
     await db.save();
     if (mounted) Navigator.pop(context);
   }
 
   @override
-  Widget build(BuildContext context) => Frame('Add / Edit Item', Column(children: [Field('Item Name', name), Field('Item Code', code), Field('Stock Quantity', qty, keyboard: TextInputType.number), Field('Rent Price / 100', rent, keyboard: const TextInputType.numberWithOptions(decimal: true)), const Padding(padding: EdgeInsets.only(bottom: 12), child: Align(alignment: Alignment.centerLeft, child: Text('Example: ₹15 per 100 • rent is calculated on returned quantity and numeric rent days.'))), SaveButton('Save Item', save)]));
+  Widget build(BuildContext context) => Frame(
+    'Add / Edit Item',
+    Column(
+      children: [
+        Field('Item Name', name),
+        Field('Item Code', code),
+        Field('Stock Quantity', qty, keyboard: TextInputType.number),
+        Field(
+          'Rent Price / 100',
+          rent,
+          keyboard: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Example: ₹15 per 100 • rent is calculated on returned quantity and numeric rent days.',
+            ),
+          ),
+        ),
+        SaveButton('Save Item', save),
+      ],
+    ),
+  );
 }
 
 class ItemsPage extends StatelessWidget {
@@ -607,11 +871,60 @@ class ItemsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = db.records('items');
-    return Frame('Inventory', Column(children: [
-      Row(children: [const Expanded(child: Text('Items / Stock', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), IconButton(tooltip: 'Add Item', onPressed: () => openPage(context, const ItemForm()), icon: const Icon(Icons.add_circle_rounded, color: emerald, size: 34))]),
-      if (items.isEmpty) const EmptyState('No items yet. Tap + to add an item.'),
-      ...items.asMap().entries.map((e) => Card(elevation: 0, child: ListTile(leading: const CircleAvatar(backgroundColor: emeraldSoft, child: Icon(Icons.inventory_2_rounded, color: emerald)), title: Text('${e.value['name']}', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text('Code ${e.value['code'] ?? ''} • Rent ${money(e.value['rentPrice'])}/100'), trailing: Text('${e.value['quantity'] ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), onTap: () => openPage(context, ItemForm(index: e.key))))),
-    ]));
+    return Frame(
+      'Inventory',
+      Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Items / Stock',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add Item',
+                onPressed: () => openPage(context, const ItemForm()),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: emerald,
+                  size: 34,
+                ),
+              ),
+            ],
+          ),
+          if (items.isEmpty)
+            const EmptyState('No items yet. Tap + to add an item.'),
+          ...items.asMap().entries.map(
+            (e) => Card(
+              elevation: 0,
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: emeraldSoft,
+                  child: Icon(Icons.inventory_2_rounded, color: emerald),
+                ),
+                title: Text(
+                  '${e.value['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  'Code ${e.value['code'] ?? ''} • Rent ${money(e.value['rentPrice'])}/100',
+                ),
+                trailing: Text(
+                  '${e.value['quantity'] ?? 0}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                onTap: () => openPage(context, ItemForm(index: e.key)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -632,24 +945,51 @@ class _CustomerFormState extends State<CustomerForm> {
     super.initState();
     if (widget.index != null) {
       final x = db.records('customers')[widget.index!];
-      name.text = '${x['name'] ?? ''}'; mobile.text = '${x['mobile'] ?? ''}'; address.text = '${x['address'] ?? ''}';
+      name.text = '${x['name'] ?? ''}';
+      mobile.text = '${x['mobile'] ?? ''}';
+      address.text = '${x['address'] ?? ''}';
     }
   }
 
   @override
-  void dispose() { name.dispose(); mobile.dispose(); address.dispose(); super.dispose(); }
+  void dispose() {
+    name.dispose();
+    mobile.dispose();
+    address.dispose();
+    super.dispose();
+  }
 
   Future<void> save() async {
     final list = db.shop['customers'] as List? ?? <dynamic>[];
-    final data = {'id': widget.index == null ? uid() : db.records('customers')[widget.index!]['id'], 'name': name.text.trim(), 'mobile': mobile.text.trim(), 'address': address.text.trim()};
-    if (widget.index == null) list.add(data); else list[widget.index!] = data;
+    final data = {
+      'id': widget.index == null
+          ? uid()
+          : db.records('customers')[widget.index!]['id'],
+      'name': name.text.trim(),
+      'mobile': mobile.text.trim(),
+      'address': address.text.trim(),
+    };
+    if (widget.index == null)
+      list.add(data);
+    else
+      list[widget.index!] = data;
     db.shop['customers'] = list;
     await db.save();
     if (mounted) Navigator.pop(context);
   }
 
   @override
-  Widget build(BuildContext context) => Frame('Add / Edit Party', Column(children: [Field('Party / Customer Name', name), Field('Mobile', mobile, keyboard: TextInputType.phone), Field('Address', address, maxLines: 3), SaveButton('Save Customer', save)]));
+  Widget build(BuildContext context) => Frame(
+    'Add / Edit Party',
+    Column(
+      children: [
+        Field('Party / Customer Name', name),
+        Field('Mobile', mobile, keyboard: TextInputType.phone),
+        Field('Address', address, maxLines: 3),
+        SaveButton('Save Customer', save),
+      ],
+    ),
+  );
 }
 
 class CustomersPage extends StatelessWidget {
@@ -657,11 +997,49 @@ class CustomersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = db.records('customers');
-    return Frame('Customers / Parties', Column(children: [
-      Row(children: [const Expanded(child: Text('Party Master', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))), IconButton(tooltip: 'Add Customer', onPressed: () => openPage(context, const CustomerForm()), icon: const Icon(Icons.person_add_rounded, color: emerald, size: 32))]),
-      if (a.isEmpty) const EmptyState('No parties. Tap + to add.'),
-      ...a.asMap().entries.map((e) => Card(elevation: 0, child: ListTile(leading: const Icon(Icons.person_rounded, color: emerald), title: Text('${e.value['name']}', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text('${e.value['mobile'] ?? ''}\n${e.value['address'] ?? ''}'), onTap: () => openPage(context, CustomerForm(index: e.key))))),
-    ]));
+    return Frame(
+      'Customers / Parties',
+      Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Party Master',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add Customer',
+                onPressed: () => openPage(context, const CustomerForm()),
+                icon: const Icon(
+                  Icons.person_add_rounded,
+                  color: emerald,
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+          if (a.isEmpty) const EmptyState('No parties. Tap + to add.'),
+          ...a.asMap().entries.map(
+            (e) => Card(
+              elevation: 0,
+              child: ListTile(
+                leading: const Icon(Icons.person_rounded, color: emerald),
+                title: Text(
+                  '${e.value['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  '${e.value['mobile'] ?? ''}\n${e.value['address'] ?? ''}',
+                ),
+                onTap: () => openPage(context, CustomerForm(index: e.key)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -677,21 +1055,45 @@ class _IssueState extends State<IssuePage> {
   final rows = <Map<String, dynamic>>[];
 
   @override
-  void initState() { super.initState(); invoice.text = 'INV-${DateTime.now().millisecondsSinceEpoch}'; }
+  void initState() {
+    super.initState();
+    invoice.text = 'INV-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
   @override
-  void dispose() { invoice.dispose(); super.dispose(); }
+  void dispose() {
+    invoice.dispose();
+    super.dispose();
+  }
 
   void addRow() {
     final items = db.records('items');
     if (items.isEmpty) return;
     final x = items.first;
-    setState(() => rows.add({'itemId': x['id'], 'name': x['name'], 'qty': 1, 'rentPrice': x['rentPrice'] ?? 15}));
+    setState(
+      () => rows.add({
+        'itemId': x['id'],
+        'name': x['name'],
+        'qty': 1,
+        'rentPrice': x['rentPrice'] ?? 15,
+      }),
+    );
   }
 
   Future<void> save() async {
-    if (customer == null || rows.isEmpty) { snack(context, 'Select a party and at least one item.'); return; }
-    await db.addRecord('issues', {'id': uid(), 'invoice': invoice.text.trim(), 'customerId': customer, 'issueDate': today(), 'items': rows.map((e) => Map<String, dynamic>.from(e)).toList()});
-    for (final x in rows) await db.updateStock('${x['itemId']}', -numInt(x['qty']));
+    if (customer == null || rows.isEmpty) {
+      snack(context, 'Select a party and at least one item.');
+      return;
+    }
+    await db.addRecord('issues', {
+      'id': uid(),
+      'invoice': invoice.text.trim(),
+      'customerId': customer,
+      'issueDate': today(),
+      'items': rows.map((e) => Map<String, dynamic>.from(e)).toList(),
+    });
+    for (final x in rows)
+      await db.updateStock('${x['itemId']}', -numInt(x['qty']));
     if (mounted) Navigator.pop(context);
   }
 
@@ -699,25 +1101,102 @@ class _IssueState extends State<IssuePage> {
   Widget build(BuildContext context) {
     final customers = db.records('customers');
     final items = db.records('items');
-    return Frame('Issued / New Invoice', Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Row(children: [
-        Expanded(child: DropdownButtonFormField<String>(value: customer, decoration: const InputDecoration(labelText: 'Customer / Party'), items: customers.map((x) => DropdownMenuItem(value: '${x['id']}', child: Text('${x['name']}'))).toList(), onChanged: (v) => setState(() => customer = v))),
-        IconButton(tooltip: 'Add Customer', onPressed: () => openPage(context, const CustomerForm()), icon: const Icon(Icons.add_circle_rounded, color: emerald, size: 32)),
-      ]),
-      const SizedBox(height: 10),
-      Field('Invoice Number', invoice),
-      ...rows.asMap().entries.map((e) {
-        final i = e.key; final x = e.value;
-        return Card(elevation: 0, child: Padding(padding: const EdgeInsets.all(10), child: Row(children: [
-          Expanded(child: DropdownButtonFormField<String>(value: '${x['itemId']}', decoration: const InputDecoration(labelText: 'Item'), items: items.map((z) => DropdownMenuItem(value: '${z['id']}', child: Text('${z['name']}'))).toList(), onChanged: (v) { final z = items.firstWhere((q) => '${q['id']}' == v); setState(() { x['itemId'] = v; x['name'] = z['name']; x['rentPrice'] = z['rentPrice'] ?? 15; }); })),
-          const SizedBox(width: 8),
-          SizedBox(width: 78, child: TextFormField(initialValue: '${x['qty']}', keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Qty'), onChanged: (v) => x['qty'] = numInt(v))),
-          IconButton(onPressed: () => setState(() => rows.removeAt(i)), icon: const Icon(Icons.delete_outline, color: Colors.red)),
-        ])));
-      }),
-      TextButton.icon(onPressed: addRow, icon: const Icon(Icons.add_circle, color: emerald), label: const Text('Add Another Item')),
-      SaveButton('Save Issued Invoice', save),
-    ]));
+    return Frame(
+      'Issued / New Invoice',
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: customer,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer / Party',
+                  ),
+                  items: customers
+                      .map(
+                        (x) => DropdownMenuItem(
+                          value: '${x['id']}',
+                          child: Text('${x['name']}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => customer = v),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add Customer',
+                onPressed: () => openPage(context, const CustomerForm()),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: emerald,
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Field('Invoice Number', invoice),
+          ...rows.asMap().entries.map((e) {
+            final i = e.key;
+            final x = e.value;
+            return Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: '${x['itemId']}',
+                        decoration: const InputDecoration(labelText: 'Item'),
+                        items: items
+                            .map(
+                              (z) => DropdownMenuItem(
+                                value: '${z['id']}',
+                                child: Text('${z['name']}'),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          final z = items.firstWhere((q) => '${q['id']}' == v);
+                          setState(() {
+                            x['itemId'] = v;
+                            x['name'] = z['name'];
+                            x['rentPrice'] = z['rentPrice'] ?? 15;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 78,
+                      child: TextFormField(
+                        initialValue: '${x['qty']}',
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Qty'),
+                        onChanged: (v) => x['qty'] = numInt(v),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => setState(() => rows.removeAt(i)),
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          TextButton.icon(
+            onPressed: addRow,
+            icon: const Icon(Icons.add_circle, color: emerald),
+            label: const Text('Add Another Item'),
+          ),
+          SaveButton('Save Issued Invoice', save),
+        ],
+      ),
+    );
   }
 }
 
@@ -734,10 +1213,16 @@ class _ReturnState extends State<ReturnPage> {
   final manual = TextEditingController();
 
   @override
-  void dispose() { manual.dispose(); super.dispose(); }
+  void dispose() {
+    manual.dispose();
+    super.dispose();
+  }
 
   Future<void> save() async {
-    if (issue == null) { snack(context, 'Select an issued invoice.'); return; }
+    if (issue == null) {
+      snack(context, 'Select an issued invoice.');
+      return;
+    }
     final returned = today();
     final days = rentDays('${issue!['issueDate']}', returned);
     final out = <Map<String, dynamic>>[];
@@ -748,13 +1233,34 @@ class _ReturnState extends State<ReturnPage> {
       final r = numDouble(x['rentPrice'] ?? 15);
       final amount = r * q * days / 100;
       total += amount;
-      out.add({'itemId': x['itemId'], 'name': x['name'], 'issuedQty': numInt(x['qty']), 'returnQty': q, 'rentPrice': r, 'rentDays': days, 'amount': amount});
+      out.add({
+        'itemId': x['itemId'],
+        'name': x['name'],
+        'issuedQty': numInt(x['qty']),
+        'returnQty': q,
+        'rentPrice': r,
+        'rentDays': days,
+        'amount': amount,
+      });
       await db.updateStock('${x['itemId']}', q);
     }
-    if (out.isEmpty) { snack(context, 'Enter return quantity for at least one item.'); return; }
+    if (out.isEmpty) {
+      snack(context, 'Enter return quantity for at least one item.');
+      return;
+    }
     final m = double.tryParse(manual.text.trim());
     if (m != null) total = m;
-    await db.addRecord('returns', {'id': uid(), 'returnInvoice': 'RET-${DateTime.now().millisecondsSinceEpoch}', 'customerId': customer, 'issueInvoice': issue!['invoice'], 'issueDate': issue!['issueDate'], 'returnDate': returned, 'rentDays': days, 'amount': total, 'items': out});
+    await db.addRecord('returns', {
+      'id': uid(),
+      'returnInvoice': 'RET-${DateTime.now().millisecondsSinceEpoch}',
+      'customerId': customer,
+      'issueInvoice': issue!['invoice'],
+      'issueDate': issue!['issueDate'],
+      'returnDate': returned,
+      'rentDays': days,
+      'amount': total,
+      'items': out,
+    });
     if (mounted) Navigator.pop(context);
   }
 
@@ -762,20 +1268,98 @@ class _ReturnState extends State<ReturnPage> {
   Widget build(BuildContext context) {
     final customers = db.records('customers');
     final issues = db.records('issues');
-    final items = issue == null ? <Map<String, dynamic>>[] : maps(issue!['items']);
-    return Frame('Return / Receive', Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Row(children: [Expanded(child: DropdownButtonFormField<String>(value: customer, decoration: const InputDecoration(labelText: 'Customer / Party'), items: customers.map((x) => DropdownMenuItem(value: '${x['id']}', child: Text('${x['name']}'))).toList(), onChanged: (v) => setState(() { customer = v; issue = null; selected.clear(); }))), IconButton(tooltip: 'Add Customer', onPressed: () => openPage(context, const CustomerForm()), icon: const Icon(Icons.add_circle_rounded, color: emerald, size: 32))]),
-      const SizedBox(height: 10),
-      DropdownButtonFormField<String>(value: issue?['id']?.toString(), decoration: const InputDecoration(labelText: 'Issued Invoice'), items: issues.where((x) => customer == null || '${x['customerId']}' == customer).map((x) => DropdownMenuItem(value: '${x['id']}', child: Text('${x['invoice']} • ${x['issueDate']}'))).toList(), onChanged: (v) { if (v == null) return; final x = issues.firstWhere((q) => '${q['id']}' == v); setState(() { issue = x; selected.clear(); }); }),
-      if (issue != null) ...[
-        const SizedBox(height: 12),
-        Text('Issued date: ${issue!['issueDate']} • Return date: ${today()}', style: const TextStyle(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 8),
-        ...items.map((x) => ReturnItemCard(item: x, selectedQty: selected['${x['itemId']}'] ?? 0, issueDate: '${issue!['issueDate']}', onChanged: (q) => setState(() => selected['${x['itemId']}'] = q))),
-        Field('Manual Return Amount (optional)', manual, keyboard: const TextInputType.numberWithOptions(decimal: true)),
-        SaveButton('Save Return & Receipt', save),
-      ],
-    ]));
+    final items = issue == null
+        ? <Map<String, dynamic>>[]
+        : maps(issue!['items']);
+    return Frame(
+      'Return / Receive',
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: customer,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer / Party',
+                  ),
+                  items: customers
+                      .map(
+                        (x) => DropdownMenuItem(
+                          value: '${x['id']}',
+                          child: Text('${x['name']}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    customer = v;
+                    issue = null;
+                    selected.clear();
+                  }),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Add Customer',
+                onPressed: () => openPage(context, const CustomerForm()),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: emerald,
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: issue?['id']?.toString(),
+            decoration: const InputDecoration(labelText: 'Issued Invoice'),
+            items: issues
+                .where(
+                  (x) => customer == null || '${x['customerId']}' == customer,
+                )
+                .map(
+                  (x) => DropdownMenuItem(
+                    value: '${x['id']}',
+                    child: Text('${x['invoice']} • ${x['issueDate']}'),
+                  ),
+                )
+                .toList(),
+            onChanged: (v) {
+              if (v == null) return;
+              final x = issues.firstWhere((q) => '${q['id']}' == v);
+              setState(() {
+                issue = x;
+                selected.clear();
+              });
+            },
+          ),
+          if (issue != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Issued date: ${issue!['issueDate']} • Return date: ${today()}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            ...items.map(
+              (x) => ReturnItemCard(
+                item: x,
+                selectedQty: selected['${x['itemId']}'] ?? 0,
+                issueDate: '${issue!['issueDate']}',
+                onChanged: (q) =>
+                    setState(() => selected['${x['itemId']}'] = q),
+              ),
+            ),
+            Field(
+              'Manual Return Amount (optional)',
+              manual,
+              keyboard: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            SaveButton('Save Return & Receipt', save),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -784,7 +1368,13 @@ class ReturnItemCard extends StatelessWidget {
   final int selectedQty;
   final String issueDate;
   final ValueChanged<int> onChanged;
-  const ReturnItemCard({super.key, required this.item, required this.selectedQty, required this.issueDate, required this.onChanged});
+  const ReturnItemCard({
+    super.key,
+    required this.item,
+    required this.selectedQty,
+    required this.issueDate,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -792,16 +1382,53 @@ class ReturnItemCard extends StatelessWidget {
     final r = numDouble(item['rentPrice'] ?? 15);
     final days = rentDays(issueDate, today());
     final amount = r * selectedQty * days / 100;
-    return Card(elevation: 0, color: selectedQty > 0 ? emeraldSoft : Colors.white, child: Padding(padding: const EdgeInsets.all(12), child: Row(children: [
-      Icon(selectedQty > 0 ? Icons.check_circle : Icons.inventory_2_outlined, color: emerald),
-      const SizedBox(width: 10),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${item['name']}', style: const TextStyle(fontWeight: FontWeight.w900)),
-        Text('Issued Qty $max • Rent ${money(r)}/100'),
-        Text('Rent Days $days • Amount ${money(amount)}', style: const TextStyle(color: emeraldDark, fontWeight: FontWeight.w800)),
-      ])),
-      SizedBox(width: 78, child: TextFormField(initialValue: selectedQty == 0 ? '' : '$selectedQty', keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Return', hintText: '0-$max'), onChanged: (v) => onChanged((numInt(v)).clamp(0, max)))),
-    ])));
+    return Card(
+      elevation: 0,
+      color: selectedQty > 0 ? emeraldSoft : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(
+              selectedQty > 0 ? Icons.check_circle : Icons.inventory_2_outlined,
+              color: emerald,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${item['name']}',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  Text('Issued Qty $max • Rent ${money(r)}/100'),
+                  Text(
+                    'Rent Days $days • Amount ${money(amount)}',
+                    style: const TextStyle(
+                      color: emeraldDark,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 78,
+              child: TextFormField(
+                initialValue: selectedQty == 0 ? '' : '$selectedQty',
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Return',
+                  hintText: '0-$max',
+                ),
+                onChanged: (v) => onChanged((numInt(v)).clamp(0, max)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -814,55 +1441,160 @@ class InventoryPage extends StatelessWidget {
     final returned = db.records('returns');
     final issuedByItem = <String, int>{};
     final returnedByItem = <String, int>{};
-    for (final i in issues) for (final x in maps(i['items'])) { issuedByItem['${x['itemId']}'] = (issuedByItem['${x['itemId']}'] ?? 0) + numInt(x['qty']); }
-    for (final r in returned) for (final x in maps(r['items'])) { returnedByItem['${x['itemId']}'] = (returnedByItem['${x['itemId']}'] ?? 0) + numInt(x['returnQty']); }
-    return Frame('Inventory Register', Column(children: [
-      const Align(alignment: Alignment.centerLeft, child: Text('Current Stock • Issued • Returned', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
-      const SizedBox(height: 8),
-      if (items.isEmpty) const EmptyState('No inventory records.'),
-      ...items.map((x) => Card(elevation: 0, child: ListTile(title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100'), trailing: Text('${x['quantity'] ?? 0}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emerald)))),
-    ]));
+    for (final i in issues)
+      for (final x in maps(i['items'])) {
+        issuedByItem['${x['itemId']}'] =
+            (issuedByItem['${x['itemId']}'] ?? 0) + numInt(x['qty']);
+      }
+    for (final r in returned)
+      for (final x in maps(r['items'])) {
+        returnedByItem['${x['itemId']}'] =
+            (returnedByItem['${x['itemId']}'] ?? 0) + numInt(x['returnQty']);
+      }
+    return Frame(
+      'Inventory Register',
+      Column(
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Current Stock • Issued • Returned',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (items.isEmpty) const EmptyState('No inventory records.'),
+          ...items.map(
+            (x) => Card(
+              elevation: 0,
+              child: ListTile(
+                title: Text(
+                  '${x['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  'Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100',
+                ),
+                trailing: Text(
+                  '${x['quantity'] ?? 0}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: emerald,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 String partyName(String? id) {
-  for (final x in db.records('customers')) if ('${x['id']}' == id) return '${x['name']}';
+  for (final x in db.records('customers'))
+    if ('${x['id']}' == id) return '${x['name']}';
   return 'Party';
 }
 
-Future<void> showBill(BuildContext context, Map<String, dynamic> record, {bool isReturn = false}) async {
+Future<void> showBill(
+  BuildContext context,
+  Map<String, dynamic> record, {
+  bool isReturn = false,
+}) async {
   final doc = pw.Document();
   final items = maps(record['items']);
-  doc.addPage(pw.MultiPage(build: (c) => [
-    pw.Text(db.shop['name']?.toString().isNotEmpty == true ? '${db.shop['name']}' : 'RentFlow', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
-    pw.SizedBox(height: 4),
-    pw.Text('${db.shop['address'] ?? ''}  ${db.shop['mobile'] ?? ''}'),
-    pw.Divider(),
-    pw.Text(isReturn ? 'RETURN RECEIPT' : 'ISSUED INVOICE', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-    pw.SizedBox(height: 6),
-    pw.Text('Party: ${partyName('${record['customerId']}')}'),
-    pw.Text('Invoice: ${record[isReturn ? 'returnInvoice' : 'invoice']}'),
-    if (isReturn) pw.Text('Issued Date: ${record['issueDate']}    Return Date: ${record['returnDate']}    Rent Days: ${record['rentDays']}'),
-    if (!isReturn) pw.Text('Issued Date: ${record['issueDate']}'),
-    pw.SizedBox(height: 10),
-    pw.Table.fromTextArray(
-      headers: isReturn ? ['Item', 'Issued', 'Return', 'Rent/100', 'Days', 'Amount'] : ['Item', 'Qty', 'Rent/100'],
-      data: items.map((x) => isReturn ? ['${x['name']}', '${x['issuedQty']}', '${x['returnQty']}', money(x['rentPrice']), '${x['rentDays']}', money(x['amount'])] : ['${x['name']}', '${x['qty']}', money(x['rentPrice'])]).toList(),
+  doc.addPage(
+    pw.MultiPage(
+      build: (c) => [
+        pw.Text(
+          db.shop['name']?.toString().isNotEmpty == true
+              ? '${db.shop['name']}'
+              : 'RentFlow',
+          style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text('${db.shop['address'] ?? ''}  ${db.shop['mobile'] ?? ''}'),
+        pw.Divider(),
+        pw.Text(
+          isReturn ? 'RETURN RECEIPT' : 'ISSUED INVOICE',
+          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        pw.Text('Party: ${partyName('${record['customerId']}')}'),
+        pw.Text('Invoice: ${record[isReturn ? 'returnInvoice' : 'invoice']}'),
+        if (isReturn)
+          pw.Text(
+            'Issued Date: ${record['issueDate']}    Return Date: ${record['returnDate']}    Rent Days: ${record['rentDays']}',
+          ),
+        if (!isReturn) pw.Text('Issued Date: ${record['issueDate']}'),
+        pw.SizedBox(height: 10),
+        pw.Table.fromTextArray(
+          headers: isReturn
+              ? ['Item', 'Issued', 'Return', 'Rent/100', 'Days', 'Amount']
+              : ['Item', 'Qty', 'Rent/100'],
+          data: items
+              .map(
+                (x) => isReturn
+                    ? [
+                        '${x['name']}',
+                        '${x['issuedQty']}',
+                        '${x['returnQty']}',
+                        money(x['rentPrice']),
+                        '${x['rentDays']}',
+                        money(x['amount']),
+                      ]
+                    : ['${x['name']}', '${x['qty']}', money(x['rentPrice'])],
+              )
+              .toList(),
+        ),
+        if (isReturn) ...[
+          pw.SizedBox(height: 12),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              'TOTAL: ${money(record['amount'])}',
+              style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+        ],
+        pw.SizedBox(height: 28),
+        pw.Text('RentFlow • By PaliaAPK HUB • Developer by shanpalia'),
+      ],
     ),
-    if (isReturn) ...[pw.SizedBox(height: 12), pw.Align(alignment: pw.Alignment.centerRight, child: pw.Text('TOTAL: ${money(record['amount'])}', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)))],
-    pw.SizedBox(height: 28),
-    pw.Text('RentFlow • By PaliaAPK HUB • Developer by shanpalia'),
-  ]));
+  );
   if (!context.mounted) return;
-  await Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(document: doc, title: isReturn ? 'Return Receipt' : 'Issued Invoice')));
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => PdfPreviewPage(
+        document: doc,
+        title: isReturn ? 'Return Receipt' : 'Issued Invoice',
+      ),
+    ),
+  );
 }
 
 class PdfPreviewPage extends StatelessWidget {
   final pw.Document document;
   final String title;
-  const PdfPreviewPage({super.key, required this.document, required this.title});
+  const PdfPreviewPage({
+    super.key,
+    required this.document,
+    required this.title,
+  });
   @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(title)), body: PdfPreview(build: (format) => document.save(), canChangeOrientation: false, canChangePageFormat: false, allowPrinting: true, allowSharing: true));
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: PdfPreview(
+      build: (format) => document.save(),
+      canChangeOrientation: false,
+      canChangePageFormat: false,
+      allowPrinting: true,
+      allowSharing: true,
+    ),
+  );
 }
 
 class BillsPage extends StatelessWidget {
@@ -871,23 +1603,117 @@ class BillsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final issues = db.records('issues');
     final returns = db.records('returns');
-    return Frame('Reports / Bills', Column(children: [
-      const Align(alignment: Alignment.centerLeft, child: Text('ISSUED BILLS', style: TextStyle(fontWeight: FontWeight.w900, color: emeraldDark))),
-      ...issues.map((x) => Card(elevation: 0, child: ListTile(leading: const Icon(Icons.receipt_long_rounded, color: emerald), title: Text('${x['invoice']} • ${partyName('${x['customerId']}')}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Issued ${x['issueDate']} • ${maps(x['items']).length} item(s)'), trailing: IconButton(tooltip: 'Preview / Print PDF', onPressed: () => showBill(context, x), icon: const Icon(Icons.picture_as_pdf_rounded, color: emerald))))),
-      const SizedBox(height: 12),
-      const Align(alignment: Alignment.centerLeft, child: Text('RETURN RECEIPTS', style: TextStyle(fontWeight: FontWeight.w900, color: emeraldDark))),
-      ...returns.map((x) => Card(elevation: 0, child: ListTile(leading: const Icon(Icons.assignment_return_rounded, color: emerald), title: Text('${x['returnInvoice']} • ${partyName('${x['customerId']}')}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Issued ${x['issueDate']} • Return ${x['returnDate']} • ${x['rentDays']} days • ${money(x['amount'])}'), trailing: IconButton(tooltip: 'Preview / Print PDF', onPressed: () => showBill(context, x, isReturn: true), icon: const Icon(Icons.picture_as_pdf_rounded, color: emerald))))),
-      if (issues.isEmpty && returns.isEmpty) const EmptyState('No bills yet. Create an invoice first.'),
-    ]));
+    return Frame(
+      'Reports / Bills',
+      Column(
+        children: [
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'ISSUED BILLS',
+              style: TextStyle(fontWeight: FontWeight.w900, color: emeraldDark),
+            ),
+          ),
+          ...issues.map(
+            (x) => Card(
+              elevation: 0,
+              child: ListTile(
+                leading: const Icon(Icons.receipt_long_rounded, color: emerald),
+                title: Text(
+                  '${x['invoice']} • ${partyName('${x['customerId']}')}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  'Issued ${x['issueDate']} • ${maps(x['items']).length} item(s)',
+                ),
+                trailing: IconButton(
+                  tooltip: 'Preview / Print PDF',
+                  onPressed: () => showBill(context, x),
+                  icon: const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: emerald,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'RETURN RECEIPTS',
+              style: TextStyle(fontWeight: FontWeight.w900, color: emeraldDark),
+            ),
+          ),
+          ...returns.map(
+            (x) => Card(
+              elevation: 0,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.assignment_return_rounded,
+                  color: emerald,
+                ),
+                title: Text(
+                  '${x['returnInvoice']} • ${partyName('${x['customerId']}')}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  'Issued ${x['issueDate']} • Return ${x['returnDate']} • ${x['rentDays']} days • ${money(x['amount'])}',
+                ),
+                trailing: IconButton(
+                  tooltip: 'Preview / Print PDF',
+                  onPressed: () => showBill(context, x, isReturn: true),
+                  icon: const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: emerald,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (issues.isEmpty && returns.isEmpty)
+            const EmptyState('No bills yet. Create an invoice first.'),
+        ],
+      ),
+    );
   }
 }
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
   @override
-  Widget build(BuildContext context) => Frame('Settings / About', Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-    Card(elevation: 0, child: ListTile(leading: const Icon(Icons.store_rounded, color: emerald), title: Text('${db.shop['name'] ?? 'RentFlow'}', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: const Text('Shop / Company information'), trailing: const Icon(Icons.chevron_right))),
-    const SizedBox(height: 8),
-    const Card(elevation: 0, child: ListTile(leading: Icon(Icons.info_outline_rounded, color: emerald), title: Text('RentFlow', style: TextStyle(fontWeight: FontWeight.w900)), subtitle: Text('Rental management • Bills • Inventory • Returns\nBy PaliaAPK HUB • Developer by shanpalia'))),
-  ]));
+  Widget build(BuildContext context) => Frame(
+    'Settings / About',
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Card(
+          elevation: 0,
+          child: ListTile(
+            leading: const Icon(Icons.store_rounded, color: emerald),
+            title: Text(
+              '${db.shop['name'] ?? 'RentFlow'}',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: const Text('Shop / Company information'),
+            trailing: const Icon(Icons.chevron_right),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Card(
+          elevation: 0,
+          child: ListTile(
+            leading: Icon(Icons.info_outline_rounded, color: emerald),
+            title: Text(
+              'RentFlow',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              'Rental management • Bills • Inventory • Returns\nBy PaliaAPK HUB • Developer by shanpalia',
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
