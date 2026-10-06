@@ -1,0 +1,341 @@
+name: Fix RentFlow Return UI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: "!contains(github.event.head_commit.message, '[skip return fix]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Replace Returns screen
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('lib/rentflow_emerald.dart')
+          text = path.read_text(encoding='utf-8')
+
+          replacement = r'''class ReturnPage extends StatefulWidget {
+  const ReturnPage({super.key});
+  @override
+  State<ReturnPage> createState() => _ReturnState();
+}
+
+class _ReturnState extends State<ReturnPage> {
+  String? customer;
+  Map<String, dynamic>? issue;
+  String returnDate = today();
+  final returnNo = TextEditingController();
+  final selected = <String, int>{};
+  final controllers = <String, TextEditingController>{};
+
+  @override
+  void initState() {
+    super.initState();
+    returnNo.text = 'RET-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  void dispose() {
+    returnNo.dispose();
+    for (final c in controllers.values) c.dispose();
+    super.dispose();
+  }
+
+  TextEditingController controllerFor(String id) {
+    return controllers.putIfAbsent(id, () => TextEditingController());
+  }
+
+  void clearIssue() {
+    for (final c in controllers.values) c.dispose();
+    controllers.clear();
+    selected.clear();
+    issue = null;
+  }
+
+  Future<void> pickReturnDate() async {
+    final initial = DateTime.tryParse(returnDate) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    setState(() => returnDate = picked.toIso8601String().substring(0, 10));
+  }
+
+  double amountFor(Map<String, dynamic> item, int qty, int days) {
+    final rentPer100 = numDouble(item['rentPrice'] ?? 15);
+    return rentPer100 * qty * days / 100;
+  }
+
+  Future<void> save() async {
+    if (customer == null) {
+      snack(context, 'Select a party / customer.');
+      return;
+    }
+    if (issue == null) {
+      snack(context, 'Select an issued invoice.');
+      return;
+    }
+    if (returnNo.text.trim().isEmpty) {
+      snack(context, 'Enter return number.');
+      return;
+    }
+
+    final days = rentDays('${issue!['issueDate']}', returnDate);
+    final out = <Map<String, dynamic>>[];
+    double total = 0;
+
+    for (final x in maps(issue!['items'])) {
+      final q = selected['${x['itemId']}'] ?? 0;
+      if (q <= 0) continue;
+      final issuedQty = numInt(x['qty']);
+      final rate = numDouble(x['rentPrice'] ?? 15);
+      final amount = amountFor(x, q, days);
+      total += amount;
+      out.add({
+        'itemId': x['itemId'],
+        'name': x['name'],
+        'unit': x['unit'] ?? 'Pcs',
+        'issuedQty': issuedQty,
+        'returnQty': q,
+        'rentPrice': rate,
+        'rentDays': days,
+        'amount': amount,
+      });
+      await db.updateStock('${x['itemId']}', q);
+    }
+
+    if (out.isEmpty) {
+      snack(context, 'Enter return quantity for at least one item.');
+      return;
+    }
+
+    await db.addRecord('returns', {
+      'id': uid(),
+      'returnInvoice': returnNo.text.trim(),
+      'customerId': customer,
+      'issueInvoice': issue!['invoice'],
+      'issueDate': issue!['issueDate'],
+      'returnDate': returnDate,
+      'rentDays': days,
+      'amount': total,
+      'items': out,
+    });
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final customers = db.records('customers');
+    final issues = db.records('issues');
+    final items = issue == null ? <Map<String, dynamic>>[] : maps(issue!['items']);
+    final days = issue == null ? 1 : rentDays('${issue!['issueDate']}', returnDate);
+    final total = items.fold<double>(0, (sum, x) {
+      final q = selected['${x['itemId']}'] ?? 0;
+      return sum + amountFor(x, q, days);
+    });
+
+    return Frame(
+      'Returns / Receive',
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: line)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Return Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 760;
+                    final party = Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: customer,
+                        decoration: const InputDecoration(labelText: 'Party / Customer *'),
+                        items: customers.map((x) => DropdownMenuItem(value: '${x['id']}', child: Text('${x['name']} • ${x['mobile'] ?? ''}'))).toList(),
+                        onChanged: (v) => setState(() {
+                          customer = v;
+                          clearIssue();
+                        }),
+                      ),
+                    );
+                    final retDate = Expanded(
+                      child: TextFormField(
+                        controller: TextEditingController(text: returnDate),
+                        readOnly: true,
+                        decoration: const InputDecoration(labelText: 'Return Date *', suffixIcon: Icon(Icons.calendar_today_rounded)),
+                        onTap: pickReturnDate,
+                      ),
+                    );
+                    return wide
+                        ? Row(children: [party, const SizedBox(width: 12), retDate])
+                        : Column(children: [party, const SizedBox(height: 12), retDate]);
+                  }),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 760;
+                    final no = Expanded(child: TextFormField(controller: returnNo, decoration: const InputDecoration(labelText: 'Return No. *', hintText: 'e.g. RET-0001')));
+                    final invoice = Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: issue?['id']?.toString(),
+                        decoration: const InputDecoration(labelText: 'Issued Invoice No. *'),
+                        items: issues.where((x) => customer == null || '${x['customerId']}' == customer).map((x) => DropdownMenuItem(value: '${x['id']}', child: Text('${x['invoice']} • ${x['issueDate']}'))).toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          final x = issues.firstWhere((q) => '${q['id']}' == v);
+                          for (final c in controllers.values) c.dispose();
+                          controllers.clear();
+                          setState(() {
+                            issue = x;
+                            selected.clear();
+                          });
+                        },
+                      ),
+                    );
+                    return wide
+                        ? Row(children: [no, const SizedBox(width: 12), invoice])
+                        : Column(children: [no, const SizedBox(height: 12), invoice]);
+                  }),
+                ],
+              ),
+            ),
+          ),
+          if (issue != null) ...[
+            const SizedBox(height: 14),
+            Card(
+              elevation: 0,
+              color: emeraldSoft,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Wrap(
+                  spacing: 24,
+                  runSpacing: 8,
+                  children: [
+                    Text('Invoice: ${issue!['invoice']}', style: const TextStyle(fontWeight: FontWeight.w900)),
+                    Text('Issued: ${issue!['issueDate']}'),
+                    Text('Return: $returnDate'),
+                    Text('Total Days: $days', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: line)),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Text('Issued Inventory / Return Items', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+                        Chip(label: Text('Total ${money(total)}', style: const TextStyle(fontWeight: FontWeight.w900))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: MaterialStatePropertyAll(emeraldSoft),
+                        columnSpacing: 22,
+                        columns: const [
+                          DataColumn(label: Text('SRL')),
+                          DataColumn(label: Text('INVOICE NO.')),
+                          DataColumn(label: Text('ITEM')),
+                          DataColumn(label: Text('UNIT')),
+                          DataColumn(label: Text('ISSUED QTY')),
+                          DataColumn(label: Text('RETURN QTY')),
+                          DataColumn(label: Text('RENT / 100 / DAY')),
+                          DataColumn(label: Text('TOTAL DAYS')),
+                          DataColumn(label: Text('AMOUNT')),
+                        ],
+                        rows: items.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final x = entry.value;
+                          final id = '${x['itemId']}';
+                          final q = selected[id] ?? 0;
+                          final amount = amountFor(x, q, days);
+                          final c = controllerFor(id);
+                          return DataRow(cells: [
+                            DataCell(Text('${index + 1}')),
+                            DataCell(Text('${issue!['invoice']}', style: const TextStyle(fontWeight: FontWeight.w800))),
+                            DataCell(Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800))),
+                            DataCell(Text('${x['unit'] ?? 'Pcs'}')),
+                            DataCell(Text('${numInt(x['qty'])}')),
+                            DataCell(SizedBox(width: 100, child: TextFormField(
+                              controller: c,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(hintText: '0', isDense: true),
+                              onChanged: (v) => selected[id] = numInt(v),
+                              onEditingComplete: () => setState(() {}),
+                              onFieldSubmitted: (_) => setState(() {}),
+                            ))),
+                            DataCell(Text(money(x['rentPrice'] ?? 15))),
+                            DataCell(Text('$days')),
+                            DataCell(Text(money(amount), style: const TextStyle(fontWeight: FontWeight.w900, color: emeraldDark))),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(alignment: Alignment.centerRight, child: Text('Return Total: ${money(total)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900))),
+                    const SizedBox(height: 10),
+                    SaveButton('Save Return & Receipt', save, icon: Icons.assignment_return_rounded),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+'''
+
+          pattern = re.compile(r'class ReturnPage extends StatefulWidget \{.*?\nclass InventoryPage extends StatelessWidget \{', re.S)
+          new_text, count = pattern.subn(replacement + 'class InventoryPage extends StatelessWidget {', text, count=1)
+          if count != 1:
+              raise SystemExit('Could not locate the existing ReturnPage block; no source was changed.')
+          path.write_text(new_text, encoding='utf-8')
+          PY
+
+      - name: Validate Dart syntax
+        run: |
+          dart format lib/rentflow_emerald.dart
+          flutter analyze lib/rentflow_emerald.dart
+
+      - name: Commit fix and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/rentflow_emerald.dart
+          git rm .github/workflows/fix-return-ui.yml
+          git commit -m "fix: improve returns form and rental calculation [skip return fix]"
+          git push
