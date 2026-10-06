@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/repair-rentflow.yml'
-      - 'tool/repair_returns.py'
   workflow_dispatch:
 
 permissions:
@@ -27,27 +26,26 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Restore known-good RentFlow source
+      - name: Fix the actual syntax error without replacing the app
         shell: bash
         run: |
           set -euo pipefail
-          git checkout efa9e558965a98f8ca18bcd3465b8dd4ca490b0e -- lib/rentflow_emerald.dart
           python3 - <<'PY'
           from pathlib import Path
           p = Path('lib/rentflow_emerald.dart')
           s = p.read_text(encoding='utf-8')
-          old = "      );\n\nclass HomePage extends StatefulWidget {"
-          new = "      );\n}\n\nclass HomePage extends StatefulWidget {"
+          old = "      ...items.map((x) => Card(elevation: 0, child: ListTile(title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100'), trailing: Text('${x['quantity'] ?? 0}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emerald)))),"
+          new = "      ...items.map((x) => Card(elevation: 0, child: ListTile(title: Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text('Stock ${x['quantity'] ?? 0} • Issued ${issuedByItem['${x['id']}'] ?? 0} • Returned ${returnedByItem['${x['id']}'] ?? 0} • Rent ${money(x['rentPrice'])}/100'), trailing: Text('${x['quantity'] ?? 0}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: emerald))))),"
           if old not in s:
-              raise SystemExit('Expected AppDrawer/HomePage boundary not found')
+              raise SystemExit('Expected InventoryPage line not found; source was not modified')
           p.write_text(s.replace(old, new, 1), encoding='utf-8')
           PY
 
-      - name: Apply Returns UI repair
-        run: python3 tool/repair_returns.py
+      - name: Format Dart source
+        run: dart format lib/rentflow_emerald.dart
 
-      - name: Format Dart sources
-        run: dart format lib
+      - name: Analyze Dart source
+        run: flutter analyze lib/rentflow_emerald.dart
 
       - name: Commit repaired source
         shell: bash
@@ -55,7 +53,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/rentflow_emerald.dart
-          git rm .github/workflows/fix-return-ui.yml 2>/dev/null || true
-          git commit -m "fix: restore RentFlow returns UI"
+          git add lib/rentflow_emerald.dart .github/workflows/repair-rentflow.yml
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m "fix: repair RentFlow Dart syntax"
           git push
