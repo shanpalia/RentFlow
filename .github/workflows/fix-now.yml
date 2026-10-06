@@ -1,0 +1,49 @@
+name: RentFlow one-time fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Patch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/rentflow_emerald.dart')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+              "void openPage(BuildContext context, Widget page) {\n  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));\n}",
+              "Future<void> openPage(BuildContext context, Widget page) async {\n  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));\n}",
+              1,
+          )
+          s = s.replace(
+              "Color lineColor(int i) => i.isEven ? line : emerald.withValues(alpha: .22);",
+              "Color lineColor(int i) => const Color(0xFFD8E5E1);",
+              1,
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/rentflow_emerald.dart
+          if git diff --cached --quiet; then
+            echo 'No patch needed.'
+            exit 0
+          fi
+          git commit -m "fix: resolve RentFlow analyzer errors"
+          git push
